@@ -1,0 +1,7 @@
+name: commonsgate
+agent_directory: commonsgate_agent
+create_params:
+  deployment_target: cloud_run
+  session_type: in_memory
+  prototype: true
+

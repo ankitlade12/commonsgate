@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling>=1.26"]
+build-backend = "hatchling.build"
+
+[project]
+name = "commonsgate"
+version = "0.1.0"
+description = "A reference implementation for agent-invariant access to scarce appointments"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "CommonsGate contributors" }]
+dependencies = [
+    "fastapi>=0.128,<1.0",
+    "google-adk[gcp]>=2.0,<3.0",
+    "google-cloud-firestore>=2.21,<3.0",
+    "google-genai>=1.72,<2.0",
+    "opentelemetry-api>=1.41,<2.0",
+    "opentelemetry-sdk>=1.41,<2.0",
+    "opentelemetry-exporter-gcp-trace>=1.15,<2.0",
+    "pydantic>=2.12,<3.0",
+    "uvicorn[standard]>=0.40,<1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "httpx>=0.28,<1.0",
+    "hypothesis>=6.100",
+    "pytest>=8.0",
+    "pytest-asyncio>=1.0,<2.0",
+    "mypy>=1.18,<2.0",
+    "ruff>=0.14,<1.0",
+]
+
+[project.scripts]
+commonsgate = "commonsgate.cli:main"
+commonsgate-api = "commonsgate.api:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/commonsgate", "commonsgate_agent"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true
