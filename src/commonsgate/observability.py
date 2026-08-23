@@ -9,7 +9,6 @@ from typing import Any
 
 from opentelemetry import trace
 
-
 LOGGER = logging.getLogger("commonsgate.telemetry")
 TRACER = trace.get_tracer("commonsgate")
 _CONFIGURED = False

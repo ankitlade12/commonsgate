@@ -62,6 +62,10 @@ Sybil resistance.
   stores only a content hash and opaque reference.
 - The allocator receives an in-memory projection of policy facts only.
 - Audit events are hash-chained and reject known raw-PII keys.
+- Idempotency receipts, consumed nonces, the audit-chain head, and steward leases
+  are durable Firestore records. A transaction serializes audit appends and a
+  time-bounded lease prevents duplicate scheduler delivery from advancing the
+  same round concurrently.
 - Public metrics must be aggregate and apply small-cell suppression.
 
 Agent Platform sessions or Memory Bank may retain interaction preferences, but
@@ -83,6 +87,10 @@ must not become the authoritative source of policy facts or allocations.
    original deterministic waitlist order.
 10. Appeal decisions append to a separate remedy hash ledger so the original
     allocation replay remains immutable.
+11. Cloud Scheduler invokes a one-shot Cloud Run Job. Each job calls the steward
+    with the preconfigured round and server-held seed, emits only aggregate
+    transition metadata, and exits. Cloud Run retries failures; duplicate calls
+    become lease conflicts or idempotent no-ops.
 
 ## Current implementation versus production target
 
@@ -95,7 +103,8 @@ must not become the authoritative source of policy facts or allocations.
 | Agent sessions | In memory | Agent Platform Sessions or managed equivalent |
 | Secrets | Environment placeholders | Secret Manager references |
 | Audit | In-process hash chain | Durable audit documents plus Cloud Logging/Trace |
-| Serving | FastAPI and ADK CLI | Separate Cloud Run or Agent Runtime services |
+| Background execution | Manual one-shot command | Cloud Scheduler → Cloud Run Job |
+| Serving | FastAPI and ADK CLI | Separate Cloud Run API, web, and ADK services |
 
 Production mode refuses to start with the rule normalizer, in-memory repository,
 or development secrets.

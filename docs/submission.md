@@ -28,8 +28,10 @@ The ADK Round Steward completes the intake-to-proof workflow:
    review.
 5. Freezes an agent-blind manifest and invokes deterministic policy plus a
    precommitted tie-break.
-6. Publishes privacy-safe replay hashes and reason-coded multilingual explanations.
-7. Expires unanswered offers, promotes the deterministic waitlist and appends
+6. Publishes privacy-safe replay hashes and reason-coded explanations in any
+   requested BCP 47 language, with an explicit approved-English fallback.
+7. Runs from Cloud Scheduler through a retryable one-shot Cloud Run Job, expires
+   unanswered offers, promotes the deterministic waitlist and appends
    appeal remedies to a separate hash ledger.
 
 Gemini never receives an allocation tool and never assigns priority or a slot.
@@ -59,6 +61,7 @@ The dashboard includes:
   approved-copy translation
 - Google Agent Development Kit 2.x for the autonomous Round Steward
 - Cloud Run for independently permissioned web, agent and API services
+- Cloud Scheduler and a one-shot Cloud Run Job for durable background progress
 - Firestore for authoritative round, request and appeal state
 - Secret Manager for deployment credentials
 - Cloud Logging and Cloud Trace for redacted execution evidence
@@ -78,8 +81,25 @@ storage, recovery procedures and jurisdiction-specific legal review.
 
 - Reproducible setup: repository `README.md`
 - Architecture and boundaries: `docs/architecture.md`
+- Standalone architecture upload: `docs/architecture-upload.png`
 - Deployment: `docs/cloud-deployment.md`
 - Four-minute recording plan: `docs/demo-script.md`
 - Automated checks: backend, property, adversarial, API lifecycle, TypeScript and
   production Next.js build
 
+## Required owner-supplied submission fields
+
+- **Hosted URL:** add only after the live runtime banner reports the deployed
+  backend revision and `evidence_source=live`.
+- **Public repository:** verify anonymous access, or invite both hackathon testing
+  accounts named in the Devpost rules before submission.
+- **Video:** public YouTube or Vimeo URL, at most four minutes, with English audio
+  or subtitles.
+- **Build period:** enter the truthful project start date and identify any
+  pre-existing components.
+- **Bring-your-own-friction story:** add the founder's authentic first-person
+  reason for caring about agent-mediated access. Do not replace this with invented
+  user research or endorsements.
+- **Google Cloud evidence:** record real service revisions, Scheduler execution,
+  Vertex model call, Firestore document, and correlation trace only after the
+  selected project is confirmed and deployment succeeds.

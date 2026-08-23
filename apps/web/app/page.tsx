@@ -1,7 +1,8 @@
 import { DemoClient } from "./demo-client";
 import { getProof } from "../lib/proof";
+import { getRuntimeEvidence } from "../lib/runtime";
 
 export default async function Home() {
-  const proof = await getProof();
-  return <DemoClient initialProof={proof} />;
+  const [proof, runtime] = await Promise.all([getProof(), getRuntimeEvidence()]);
+  return <DemoClient initialProof={proof} initialRuntime={runtime} />;
 }

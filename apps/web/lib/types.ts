@@ -1,6 +1,8 @@
 export type Tier = "manual" | "free" | "standard" | "premium";
+export type EvidenceSource = "live" | "offline-demo";
 
 export interface ProofBundle {
+  evidence_source: EvidenceSource;
   proof_version: "commonsgate-proof-v1";
   scenario_id: "agent-access-200x20-v1";
   generated_at: string;
@@ -25,6 +27,7 @@ export interface ProofBundle {
 }
 
 export interface Explanation {
+  evidence_source: EvidenceSource;
   reason_code: string;
   requested_language: string;
   delivered_language: string;
@@ -43,6 +46,7 @@ export interface MetricInterval {
 }
 
 export interface ShadowAuditReport {
+  evidence_source: EvidenceSource;
   report_version: "commonsgate-shadow-v1";
   synthetic_demo: true;
   population_size: number;
@@ -69,10 +73,24 @@ export interface ThreatCheck {
 }
 
 export interface ThreatReport {
+  evidence_source: EvidenceSource;
   report_version: "commonsgate-threats-v1";
   generated_at: string;
   checks: ThreatCheck[];
   passed_count: number;
   total_count: number;
   report_hash: string;
+}
+
+export interface RuntimeEvidence {
+  status: "live" | "unavailable";
+  evidence_source: EvidenceSource;
+  normalizer: string;
+  translator: string;
+  repository: string;
+  environment: string;
+  service_revision: string;
+  audit_chain_valid: boolean;
+  cloud_trace_enabled: boolean;
+  correlation_id: string;
 }

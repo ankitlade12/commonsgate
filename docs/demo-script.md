@@ -23,22 +23,27 @@ Switch to CommonsGate and rerun the deterministic proof.
 
 Show 650 attempts → 450 neutralized retries → 200 people → 20 offers.
 
-## 0:55–2:10 — unedited proof of action
+## 0:55–2:10 — unedited autonomous proof of action
 
-Show the ADK session and Cloud logs together.
+Show the Cloud Scheduler execution, Cloud Run Job attempt, ADK session and API
+logs together. Start with an already-due synthetic round; do not click a manual
+"advance" control.
 
-1. Ask the Round Steward to retrieve the public program.
-2. Submit a synthetic non-English request containing a prompt-injection phrase.
-3. Invoke the steward tick. Show `paused_for_review=true`; the round remains open.
-4. In the reviewer surface/API, save the versioned factual correction.
-5. Invoke the steward again. Show `ROUND_FROZEN` and
-   `ALLOCATION_PUBLISHED` from the same correlation flow.
+1. Show a delegated synthetic non-English request already submitted with a
+   prompt-injection phrase and source-linked Gemini extraction.
+2. Let Scheduler invoke the job. Show `paused_for_review=true`; the round remains
+   open without a human advancing it.
+3. In the reviewer surface/API, save the versioned factual correction—the one
+   intentional human safety gate.
+4. Let the next scheduled job resume. Show `ROUND_FROZEN` and
+   `ALLOCATION_PUBLISHED`, then connect its correlation ID across job and API logs.
 
 Say:
 
 > Gemini transforms messy language into quoted, typed facts. It has no decision
 > authority. The steward controls workflow, but deterministic tools control every
-> consequential transition. Uncertainty pauses instead of becoming denial.
+> consequential transition. Scheduler retries safely, and uncertainty pauses
+> instead of becoming denial.
 
 ## 2:10–2:45 — completion, not just selection
 
@@ -72,4 +77,3 @@ The hackathon build uses synthetic identities and data. It allocates intake
 opportunities, not legal representation, benefits, housing, healthcare or
 emergency services. A production deployment requires an approved identity issuer,
 provider governance, privacy review and durable audit infrastructure.
-

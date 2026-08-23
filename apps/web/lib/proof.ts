@@ -1,6 +1,7 @@
 import type { ProofBundle } from "./types";
 
 export const fallbackProof: ProofBundle = {
+  evidence_source: "offline-demo",
   proof_version: "commonsgate-proof-v1",
   scenario_id: "agent-access-200x20-v1",
   generated_at: "2026-08-22T00:00:00.000Z",
@@ -47,8 +48,8 @@ export async function getProof(): Promise<ProofBundle> {
       signal: AbortSignal.timeout(1200),
     });
     if (!response.ok) throw new Error(`Proof API returned ${response.status}`);
-    return (await response.json()) as ProofBundle;
+    return { ...((await response.json()) as ProofBundle), evidence_source: "live" };
   } catch {
-    return { ...fallbackProof, generated_at: new Date().toISOString() };
+    return { ...fallbackProof, generated_at: new Date().toISOString(), evidence_source: "offline-demo" };
   }
 }

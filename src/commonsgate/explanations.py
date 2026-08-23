@@ -191,9 +191,9 @@ class GeminiExplanationTranslator:
             )
             output_text = getattr(interaction, "output_text", None)
             if not isinstance(output_text, str):
-                raise ValueError("Gemini interaction did not contain output_text")
+                raise TypeError("Gemini interaction did not contain output_text")
             translated = _TranslatedFields.model_validate_json(output_text)
-        except Exception:
+        except Exception:  # noqa: BLE001 - model failure must use safe approved copy
             # Translation failure must never hide the authoritative reason or status.
             return await self._fallback.explain(reason_code, language_tag)
 

@@ -33,7 +33,10 @@ engine performs allocation. A model never ranks people or assigns slots.
 - Executable adversarial report for retry, agent-switch, capacity, seed, replay,
   and language-leak controls
 - Firestore production repository and in-memory test adapter
-- Cloud Run containers for independently permissioned API and agent services
+- Durable Firestore audit, idempotency, one-time nonce, and distributed steward lease records
+- Cloud Run containers for independently permissioned API, agent, web, and scheduled steward execution
+- Cloud Scheduler-triggered one-shot steward job with bounded retries and privacy-safe logs
+- CI, production dependency audits, Dependabot, and a private vulnerability-reporting policy
 - Public privacy-safe proof bundles with aggregate counts, commitments, and replay verification
 - Immutable human-review corrections with optimistic version checks and hashed reviewer notes
 - BCP 47 response-language support with Gemini translation of reason-locked copy and explicit fallback reporting
@@ -70,8 +73,11 @@ npm run dev
 ```
 
 Open `http://localhost:3000`. The dashboard uses the live API when available and
-falls back to the same pre-registered deterministic demonstration artifact when
-the API is offline. Set `COMMONSGATE_TRANSLATOR=gemini` on the API to translate
+labels every result with its source. Development may fall back to a pre-registered
+deterministic artifact when the API is offline; production returns `503` instead
+of presenting fallback data as live evidence unless the operator explicitly sets
+`COMMONSGATE_ALLOW_OFFLINE_DEMO=true`. Keep that override disabled for judging.
+Set `COMMONSGATE_TRANSLATOR=gemini` on the API to translate
 approved reason-code explanations on demand for any BCP 47 language tag supported
 by the configured model. Translation never changes status, reason code, or
 allocation facts; failures visibly deliver the approved English template instead.
@@ -102,27 +108,30 @@ tick. The adapter—not the model—holds the admin credential and committed see
 The tool cannot name a winner, change capacity or policy, choose a seed, or bypass
 a pending human review.
 
+## Run one autonomous steward job
+
+After creating a round, set `COMMONSGATE_API_URL`, `COMMONSGATE_ROUND_ID`,
+`COMMONSGATE_ADMIN_KEY`, and `COMMONSGATE_DEMO_ROUND_SEED`, then run:
+
+```bash
+uv run commonsgate-scheduler
+```
+
+This is the same one-shot process deployed as a Cloud Run Job and invoked by Cloud
+Scheduler. Repeated or overlapping delivery is safe: lifecycle transitions are
+idempotent and a durable Firestore lease allows only one steward to advance a
+round at a time.
+
 ## Current architecture boundary
 
-```mermaid
-flowchart LR
-    A[Manual, resident, and caseworker delegates] --> B[ADK intake orchestrator]
-    B --> C[Gemini schema-constrained extraction]
-    C --> D{Confidence and conflict gate}
-    D -->|uncertain| E[Human review]
-    D -->|validated facts| F[Agent-blind FAE manifest]
-    F --> G[Deterministic allocator]
-    G --> H[Offers, expiry, waitlist promotion]
-    G --> I[Public proof bundle and replay hashes]
-    H --> J[Reason-locked explanation in requested language]
-    E --> K[Versioned correction or appeal remedy]
-    K --> F
-```
+![CommonsGate decision-authority architecture](docs/architecture-upload.png)
 
 See [the product and engineering assessment](docs/product-strategy.md) and the
 full [PRD](hh.md). The security boundaries and deployment topology are documented
 in [architecture](docs/architecture.md), and the credential-safe deployment
 sequence is in [the Cloud runbook](docs/cloud-deployment.md).
+The standalone [architecture upload](docs/architecture-upload.png) is ready for
+the Devpost submission form.
 The remaining work is explicitly prioritized in
 [the submission readiness checklist](docs/remaining-work.md).
 

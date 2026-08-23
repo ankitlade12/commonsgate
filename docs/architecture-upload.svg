@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">CommonsGate architecture and decision-authority boundary</title>
+  <desc id="desc">A public web dashboard and delegated agents call an API. Gemini extracts and translates but cannot allocate. Firestore holds state and an audit chain. A deterministic policy engine allocates. Cloud Scheduler invokes a one-shot steward job. Human reviewers resolve uncertain cases.</desc>
+  <defs>
+    <style>
+      .bg{fill:#08111f}.panel{fill:#101d31;stroke:#314562;stroke-width:2}.safe{fill:#102d27;stroke:#35c899;stroke-width:2}.human{fill:#31251a;stroke:#f2a950;stroke-width:2}.model{fill:#211d3b;stroke:#9686ff;stroke-width:2}.title{fill:#f5f7fb;font:700 34px system-ui,sans-serif}.sub{fill:#a9b7ca;font:500 17px system-ui,sans-serif}.head{fill:#f5f7fb;font:700 20px system-ui,sans-serif}.body{fill:#c7d1df;font:500 15px system-ui,sans-serif}.tag{fill:#35c899;font:700 14px ui-monospace,monospace}.warn{fill:#f2a950;font:700 14px ui-monospace,monospace}.arrow{stroke:#7185a3;stroke-width:3;fill:none;marker-end:url(#end)}.guard{stroke:#35c899;stroke-width:3;fill:none;marker-end:url(#green)}
+    </style>
+    <marker id="end" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#7185a3"/></marker>
+    <marker id="green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#35c899"/></marker>
+  </defs>
+  <rect class="bg" width="1600" height="900"/>
+  <text class="title" x="70" y="70">CommonsGate: agent-neutral access with deterministic authority</text>
+  <text class="sub" x="70" y="103">Models transform representation. Versioned code controls every consequential decision.</text>
+
+  <rect class="panel" x="70" y="165" rx="18" width="260" height="125"/>
+  <text class="head" x="95" y="205">People + delegates</text>
+  <text class="body" x="95" y="238">Manual, caseworker, or AI</text>
+  <text class="body" x="95" y="263">Scoped principal delegation</text>
+
+  <rect class="panel" x="405" y="145" rx="18" width="305" height="165"/>
+  <text class="head" x="430" y="185">Cloud Run API gateway</text>
+  <text class="body" x="430" y="218">Auth • nonce • idempotency</text>
+  <text class="body" x="430" y="243">Provenance • conflict gate</text>
+  <text class="tag" x="430" y="278">CORRELATION + AUDIT BOUNDARY</text>
+
+  <rect class="model" x="800" y="145" rx="18" width="300" height="165"/>
+  <text class="head" x="825" y="185">Gemini 3.5 Flash</text>
+  <text class="body" x="825" y="218">Schema-constrained extraction</text>
+  <text class="body" x="825" y="243">Reason-locked translation</text>
+  <text class="warn" x="825" y="278">NO ALLOCATION TOOL</text>
+
+  <rect class="human" x="1190" y="145" rx="18" width="330" height="165"/>
+  <text class="head" x="1215" y="185">Human review</text>
+  <text class="body" x="1215" y="218">Uncertainty • conflicts • appeals</text>
+  <text class="body" x="1215" y="243">Versioned factual correction</text>
+  <text class="warn" x="1215" y="278">STEWARD PAUSES</text>
+
+  <path class="arrow" d="M330 228H405"/><path class="arrow" d="M710 205H800"/>
+  <path class="arrow" d="M800 250H710"/>
+  <path class="arrow" d="M710 165C800 105 1100 105 1190 165"/>
+  <path class="arrow" d="M1190 290C1100 350 800 350 710 290"/>
+
+  <rect class="panel" x="405" y="390" rx="18" width="305" height="160"/>
+  <text class="head" x="430" y="430">Firestore authority</text>
+  <text class="body" x="430" y="463">Requests • rounds • appeals</text>
+  <text class="body" x="430" y="488">Durable guards + leases</text>
+  <text class="tag" x="430" y="523">HASH-CHAINED AUDIT</text>
+
+  <rect class="safe" x="800" y="390" rx="18" width="300" height="160"/>
+  <text class="head" x="825" y="430">Deterministic allocator</text>
+  <text class="body" x="825" y="463">Agent-blind frozen manifest</text>
+  <text class="body" x="825" y="488">Precommitted seeded tie-break</text>
+  <text class="tag" x="825" y="523">SOLE DECISION AUTHORITY</text>
+
+  <rect class="panel" x="1190" y="390" rx="18" width="330" height="160"/>
+  <text class="head" x="1215" y="430">Public proof</text>
+  <text class="body" x="1215" y="463">Aggregate fairness evidence</text>
+  <text class="body" x="1215" y="488">Manifest + outcome replay hashes</text>
+  <text class="tag" x="1215" y="523">NO PERSON IDENTIFIERS</text>
+
+  <path class="arrow" d="M557 310V390"/><path class="guard" d="M710 470H800"/><path class="guard" d="M1100 470H1190"/>
+
+  <rect class="panel" x="70" y="650" rx="18" width="410" height="140"/>
+  <text class="head" x="95" y="690">Cloud Scheduler → Run Job</text>
+  <text class="body" x="95" y="723">One-shot steward tick • retries enabled</text>
+  <text class="body" x="95" y="748">Server-held seed • no winner arguments</text>
+  <text class="tag" x="95" y="775">AUTONOMOUS + IDEMPOTENT</text>
+
+  <rect class="panel" x="595" y="650" rx="18" width="410" height="140"/>
+  <text class="head" x="620" y="690">Cloud Logging + Trace</text>
+  <text class="body" x="620" y="723">Revision, correlation, transitions, latency</text>
+  <text class="body" x="620" y="748">Never logs raw text, token, seed, or secret</text>
+  <text class="tag" x="620" y="775">RUNTIME EVIDENCE</text>
+
+  <rect class="safe" x="1120" y="650" rx="18" width="400" height="140"/>
+  <text class="head" x="1145" y="690">Invariant</text>
+  <text class="body" x="1145" y="723">Same person + same validated facts</text>
+  <text class="body" x="1145" y="748">⇒ same opportunity across agents</text>
+  <text class="tag" x="1145" y="775">REPLAYABLE, NOT PROMISED</text>
+
+  <path class="arrow" d="M480 720C540 720 520 300 405 275"/>
+  <path class="arrow" d="M710 550C710 610 800 590 800 650"/>
+  <path class="guard" d="M1100 515C1160 570 1260 575 1320 650"/>
+  <text class="sub" x="70" y="860">Synthetic hackathon build • production requires approved identity, governance, privacy/accessibility review, and private command ingress</text>
+</svg>

@@ -3,10 +3,18 @@
 from __future__ import annotations
 
 import threading
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 from .canonical import sha256_hex
-from .contracts import AppealRecord, AppealStatus, RequestStatus, RoundRecord, StoredRequest
+from .contracts import (
+    AppealRecord,
+    AppealStatus,
+    RequestReceipt,
+    RequestStatus,
+    RoundRecord,
+    StoredRequest,
+)
 from .errors import CommonsGateError
 
 
@@ -29,6 +37,21 @@ class Repository(Protocol):
     def list_round_appeals(
         self, round_id: str, status: AppealStatus | None = None
     ) -> tuple[AppealRecord, ...]: ...
+    def get_idempotency(
+        self, agent_id: str, idempotency_key: str
+    ) -> tuple[str, RequestReceipt] | None: ...
+    def save_idempotency(
+        self,
+        agent_id: str,
+        idempotency_key: str,
+        payload_hash: str,
+        receipt: RequestReceipt,
+    ) -> None: ...
+    def consume_nonce(self, delegation_id: str, nonce: str) -> bool: ...
+    def acquire_round_lease(
+        self, round_id: str, owner_id: str, *, ttl_seconds: int = 60
+    ) -> bool: ...
+    def release_round_lease(self, round_id: str, owner_id: str) -> None: ...
 
 
 class InMemoryRepository:
@@ -37,6 +60,9 @@ class InMemoryRepository:
         self._requests: dict[str, StoredRequest] = {}
         self._principal_index: dict[tuple[str, str, str], str] = {}
         self._appeals: dict[str, AppealRecord] = {}
+        self._idempotency: dict[tuple[str, str], tuple[str, RequestReceipt]] = {}
+        self._nonces: set[tuple[str, str]] = set()
+        self._round_leases: dict[str, tuple[str, datetime]] = {}
         self._lock = threading.RLock()
 
     def create_round(self, round_record: RoundRecord) -> None:
@@ -173,6 +199,57 @@ class InMemoryRepository:
                 for appeal in sorted(values, key=lambda item: item.appeal_id)
             )
 
+    def get_idempotency(
+        self, agent_id: str, idempotency_key: str
+    ) -> tuple[str, RequestReceipt] | None:
+        with self._lock:
+            stored = self._idempotency.get((agent_id, idempotency_key))
+            if stored is None:
+                return None
+            payload_hash, receipt = stored
+            return payload_hash, receipt.model_copy(deep=True)
+
+    def save_idempotency(
+        self,
+        agent_id: str,
+        idempotency_key: str,
+        payload_hash: str,
+        receipt: RequestReceipt,
+    ) -> None:
+        with self._lock:
+            self._idempotency.setdefault(
+                (agent_id, idempotency_key),
+                (payload_hash, receipt.model_copy(deep=True)),
+            )
+
+    def consume_nonce(self, delegation_id: str, nonce: str) -> bool:
+        with self._lock:
+            key = (delegation_id, nonce)
+            if key in self._nonces:
+                return False
+            self._nonces.add(key)
+            return True
+
+    def acquire_round_lease(
+        self, round_id: str, owner_id: str, *, ttl_seconds: int = 60
+    ) -> bool:
+        now = datetime.now(UTC)
+        with self._lock:
+            current = self._round_leases.get(round_id)
+            if current is not None and current[1] > now and current[0] != owner_id:
+                return False
+            self._round_leases[round_id] = (
+                owner_id,
+                now + timedelta(seconds=ttl_seconds),
+            )
+            return True
+
+    def release_round_lease(self, round_id: str, owner_id: str) -> None:
+        with self._lock:
+            current = self._round_leases.get(round_id)
+            if current is not None and current[0] == owner_id:
+                self._round_leases.pop(round_id, None)
+
 
 class FirestoreRepository:
     """Google Cloud Firestore adapter for authoritative deployment state."""
@@ -188,6 +265,13 @@ class FirestoreRepository:
             f"{collection_prefix}_principal_requests"
         )
         self._appeals = self._client.collection(f"{collection_prefix}_appeals")
+        self._idempotency = self._client.collection(
+            f"{collection_prefix}_idempotency"
+        )
+        self._nonces = self._client.collection(f"{collection_prefix}_nonces")
+        self._round_leases = self._client.collection(
+            f"{collection_prefix}_round_leases"
+        )
 
     @staticmethod
     def _dump(model) -> dict:
@@ -291,7 +375,9 @@ class FirestoreRepository:
         ).get()
         if not index.exists:
             return None
-        return self.get_request(index.to_dict()["request_id"])
+        data = index.to_dict()
+        assert data is not None
+        return self.get_request(data["request_id"])
 
     def list_round_requests(
         self, round_id: str, status: RequestStatus | None = None
@@ -357,3 +443,107 @@ class FirestoreRepository:
             for snapshot in query.stream()
         ]
         return tuple(sorted(values, key=lambda item: item.appeal_id))
+
+    @staticmethod
+    def _guard_key(domain: str, *parts: str) -> str:
+        return sha256_hex({"domain": domain, "parts": parts})
+
+    def get_idempotency(
+        self, agent_id: str, idempotency_key: str
+    ) -> tuple[str, RequestReceipt] | None:
+        snapshot = self._idempotency.document(
+            self._guard_key("commonsgate.idempotency.v1", agent_id, idempotency_key)
+        ).get()
+        if not snapshot.exists:
+            return None
+        data = snapshot.to_dict()
+        assert data is not None
+        return data["payload_hash"], RequestReceipt.model_validate(data["receipt"])
+
+    def save_idempotency(
+        self,
+        agent_id: str,
+        idempotency_key: str,
+        payload_hash: str,
+        receipt: RequestReceipt,
+    ) -> None:
+        reference = self._idempotency.document(
+            self._guard_key("commonsgate.idempotency.v1", agent_id, idempotency_key)
+        )
+        transaction = self._client.transaction()
+
+        @self._firestore.transactional
+        def save_in_transaction(transaction) -> None:
+            snapshot = reference.get(transaction=transaction)
+            if snapshot.exists:
+                return
+            transaction.create(
+                reference,
+                {
+                    "agent_id_hash": sha256_hex(agent_id),
+                    "payload_hash": payload_hash,
+                    "receipt": self._dump(receipt),
+                },
+            )
+
+        save_in_transaction(transaction)
+
+    def consume_nonce(self, delegation_id: str, nonce: str) -> bool:
+        from google.api_core.exceptions import AlreadyExists
+
+        reference = self._nonces.document(
+            self._guard_key("commonsgate.nonce.v1", delegation_id, nonce)
+        )
+        try:
+            reference.create(
+                {
+                    "delegation_id_hash": sha256_hex(delegation_id),
+                    "nonce_hash": sha256_hex(nonce),
+                }
+            )
+        except AlreadyExists:
+            return False
+        return True
+
+    def acquire_round_lease(
+        self, round_id: str, owner_id: str, *, ttl_seconds: int = 60
+    ) -> bool:
+        reference = self._round_leases.document(round_id)
+        transaction = self._client.transaction()
+
+        @self._firestore.transactional
+        def acquire_in_transaction(transaction) -> bool:
+            now = datetime.now(UTC)
+            snapshot = reference.get(transaction=transaction)
+            if snapshot.exists:
+                current = snapshot.to_dict() or {}
+                expires_at = current.get("expires_at")
+                if (
+                    isinstance(expires_at, datetime)
+                    and expires_at > now
+                    and current.get("owner_id") != owner_id
+                ):
+                    return False
+            transaction.set(
+                reference,
+                {
+                    "owner_id": owner_id,
+                    "expires_at": now + timedelta(seconds=ttl_seconds),
+                },
+            )
+            return True
+
+        return acquire_in_transaction(transaction)
+
+    def release_round_lease(self, round_id: str, owner_id: str) -> None:
+        reference = self._round_leases.document(round_id)
+        transaction = self._client.transaction()
+
+        @self._firestore.transactional
+        def release_in_transaction(transaction) -> None:
+            snapshot = reference.get(transaction=transaction)
+            current = snapshot.to_dict() or {}
+            if snapshot.exists and current.get("owner_id") == owner_id:
+                transaction.delete(reference)
+
+        release_in_transaction(transaction)

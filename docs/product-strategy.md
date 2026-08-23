@@ -210,10 +210,12 @@ alone are insufficient.
 
 ### Milestone 4 — cloud execution evidence
 
-- Deploy API/agent to Google Cloud; use Firestore for authoritative state and
-  Cloud Logging/Trace for correlation. Add only platform components the team can
-  actually demonstrate.
-- Gate: clean, unedited path is visible on a cloud URL and trace.
+- Deploy API/agent/web plus the one-shot steward job to Google Cloud; use
+  Firestore for authoritative state, Cloud Scheduler for background invocation,
+  and Cloud Logging/Trace for correlation. Add only platform components the team
+  can actually demonstrate.
+- Gate: a clean, unedited scheduled path is visible on a cloud URL and trace;
+  duplicate delivery becomes a lease conflict or idempotent no-op.
 
 ### Milestone 5 — evaluation and submission
 

@@ -18,6 +18,7 @@ class Settings:
     public_base_url: str = "http://localhost:8080"
     enable_cloud_trace: bool = False
     service_name: str = "commonsgate-api"
+    service_revision: str = "local"
 
     def __post_init__(self) -> None:
         if self.environment == "production":
@@ -37,7 +38,7 @@ class Settings:
             raise ValueError("COMMONSGATE_TRANSLATOR must be 'template' or 'gemini'")
 
     @classmethod
-    def from_env(cls) -> "Settings":
+    def from_env(cls) -> Settings:
         return cls(
             environment=os.getenv("COMMONSGATE_ENV", "development"),
             delegation_signing_secret=os.getenv(
@@ -59,4 +60,5 @@ class Settings:
             ).lower()
             in {"1", "true", "yes"},
             service_name=os.getenv("K_SERVICE", "commonsgate-api"),
+            service_revision=os.getenv("K_REVISION", "local"),
         )

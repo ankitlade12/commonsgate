@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { offlineEvidenceAllowed } from "../../../lib/runtime";
 
 const languagePattern = /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8})*$/;
 
@@ -18,9 +19,10 @@ export async function GET(request: NextRequest) {
       { cache: "no-store", signal: AbortSignal.timeout(2500) },
     );
     if (!response.ok) throw new Error(`Explanation API returned ${response.status}`);
-    return NextResponse.json(await response.json());
+    return NextResponse.json({ ...(await response.json()), evidence_source: "live" });
   } catch {
     return NextResponse.json({
+      evidence_source: "offline-demo",
       reason_code: "INCLUDED_IN_ROUND",
       requested_language: language,
       delivered_language: "en",
@@ -32,6 +34,6 @@ export async function GET(request: NextRequest) {
       fallback_used: language.toLowerCase() !== "en",
       model_identifier: "approved-template-catalog",
       decision_authority: "none",
-    });
+    }, { status: offlineEvidenceAllowed() ? 200 : 503 });
   }
 }

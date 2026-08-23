@@ -11,8 +11,8 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Header, Query, Request
 from fastapi.responses import JSONResponse
 
-from .audit import AuditLog
-from .auth import DelegationTokenService, ReplayProtector
+from .audit import AuditLog, FirestoreAuditLog
+from .auth import DelegationTokenService
 from .contracts import (
     AppealCreateRequest,
     AppealRecord,
@@ -47,7 +47,7 @@ from .observability import (
     current_span_attributes,
     log_event,
 )
-from .repository import FirestoreRepository, InMemoryRepository
+from .repository import FirestoreRepository, InMemoryRepository, Repository
 from .service import CommonsGateService
 from .settings import Settings
 
@@ -73,17 +73,28 @@ def build_service(
     normalizer: Normalizer | None = None,
     explanation_translator: ExplanationTranslator | None = None,
 ) -> CommonsGateService:
-    repository = (
-        FirestoreRepository(collection_prefix=settings.firestore_collection_prefix)
-        if settings.repository_mode == "firestore"
-        else InMemoryRepository()
-    )
+    repository: Repository
+    audit_log: AuditLog
+    if settings.repository_mode == "firestore":
+        from google.cloud import firestore
+
+        firestore_client = firestore.Client()
+        repository = FirestoreRepository(
+            client=firestore_client,
+            collection_prefix=settings.firestore_collection_prefix,
+        )
+        audit_log = FirestoreAuditLog(
+            client=firestore_client,
+            collection_prefix=settings.firestore_collection_prefix,
+        )
+    else:
+        repository = InMemoryRepository()
+        audit_log = AuditLog()
     return CommonsGateService(
         repository=repository,
         normalizer=normalizer or build_normalizer(settings.normalizer_mode),
         token_service=DelegationTokenService(settings.delegation_signing_secret),
-        replay_protector=ReplayProtector(),
-        audit_log=AuditLog(),
+        audit_log=audit_log,
         explanation_translator=(
             explanation_translator
             or build_explanation_translator(settings.translator_mode)
@@ -146,6 +157,15 @@ def create_app(
                 duration_ms=duration_ms,
             )
         response.headers["X-Correlation-ID"] = request.state.correlation_id
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Permissions-Policy"] = (
+            "camera=(), microphone=(), geolocation=(), payment=()"
+        )
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
         return response
 
     @app.exception_handler(CommonsGateError)
@@ -171,8 +191,10 @@ def create_app(
         return {
             "status": "ok",
             "normalizer": service.normalizer.name,
+            "translator": service.explanation_translator.name,
             "repository": type(service.repository).__name__,
             "environment": resolved_settings.environment,
+            "service_revision": resolved_settings.service_revision,
             "audit_chain_valid": service.audit_log.verify_chain(),
             "cloud_trace_enabled": trace_enabled,
         }
@@ -514,4 +536,10 @@ app = create_app()
 def run() -> None:
     import uvicorn
 
-    uvicorn.run("commonsgate.api:app", host="0.0.0.0", port=8080, reload=False)
+    uvicorn.run(
+        "commonsgate.api:app",
+        host="0.0.0.0",
+        port=8080,
+        reload=False,
+        server_header=False,
+    )

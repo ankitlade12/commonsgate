@@ -49,8 +49,8 @@ class RuleBasedNormalizer:
         provenance: dict[str, FieldProvenance] = {}
         missing: list[str] = []
 
-        outside_match = re.search(r"outside\s+(?:of\s+)?cook county", raw_text, re.I)
-        area_match = re.search(r"(?:cook county|chicago)", raw_text, re.I)
+        outside_match = re.search(r"outside\s+(?:of\s+)?cook county", raw_text, re.IGNORECASE)
+        area_match = re.search(r"(?:cook county|chicago)", raw_text, re.IGNORECASE)
         if outside_match:
             service_area = False
             area_source = outside_match
@@ -86,12 +86,12 @@ class RuleBasedNormalizer:
             missing.append("court_deadline_date")
 
         no_accommodation = re.search(
-            r"no\s+(?:accessibility\s+)?accommodation", raw_text, re.I
+            r"no\s+(?:accessibility\s+)?accommodation", raw_text, re.IGNORECASE
         )
         accommodation_match = re.search(
             r"(?:wheelchair|accessibility accommodation|sign language interpreter|screen reader)",
             raw_text,
-            re.I,
+            re.IGNORECASE,
         )
         if no_accommodation:
             accommodation = False
@@ -112,7 +112,7 @@ class RuleBasedNormalizer:
             )
 
         language_match = re.search(
-            r"(?:preferred language is|language:)\s*([^\n.;,]{2,80})", raw_text, re.I
+            r"(?:preferred language is|language:)\s*([^\n.;,]{2,80})", raw_text, re.IGNORECASE
         )
         preferred_language = language_match.group(1).strip() if language_match else None
         if language_match:
@@ -179,7 +179,7 @@ class GeminiNormalizer:
             )
             output_text = getattr(interaction, "output_text", None)
             if not isinstance(output_text, str):
-                raise ValueError("Gemini interaction did not contain output_text")
+                raise TypeError("Gemini interaction did not contain output_text")
             parsed = NormalizationResult.model_validate_json(output_text)
         except (ValidationError, ValueError, TypeError) as exc:
             raise CommonsGateError(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -50,7 +50,7 @@ def test_delegation_is_bound_to_agent_principal_provider_program_and_scope() -> 
 
 def test_tampered_and_expired_delegations_are_rejected() -> None:
     service = DelegationTokenService(SECRET)
-    now = datetime(2026, 8, 22, tzinfo=timezone.utc)
+    now = datetime(2026, 8, 22, tzinfo=UTC)
     token, _ = service.issue(issue_request(), now=now)
 
     with pytest.raises(CommonsGateError) as tampered:

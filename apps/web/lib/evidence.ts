@@ -1,6 +1,7 @@
 import type { ShadowAuditReport, ThreatReport } from "./types";
 
 export const fallbackShadowAudit: ShadowAuditReport = {
+  evidence_source: "offline-demo",
   report_version: "commonsgate-shadow-v1",
   synthetic_demo: true,
   population_size: 200,
@@ -25,6 +26,7 @@ export const fallbackShadowAudit: ShadowAuditReport = {
 };
 
 export const fallbackThreatReport: ThreatReport = {
+  evidence_source: "offline-demo",
   report_version: "commonsgate-threats-v1",
   generated_at: "2026-08-22T00:00:00.000Z",
   checks: [

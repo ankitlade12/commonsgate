@@ -22,6 +22,15 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .shell { width: min(1180px, calc(100% - 40px)); margin-inline: auto; }
 .icon { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
+.runtime-banner { min-height: 38px; display: flex; align-items: center; color: #eaf1ee; background: #23332f; border-bottom: 1px solid rgba(255,255,255,.1); font: 9px var(--font-geist-mono), monospace; letter-spacing: .04em; }
+.runtime-live { background: #173b31; }
+.runtime-offline { color: #402419; background: #ffd8c8; border-color: #e4a992; }
+.runtime-inner { display: grid; grid-template-columns: 190px 1fr auto; align-items: center; gap: 18px; }
+.runtime-state { display: flex; align-items: center; gap: 8px; font-weight: 750; letter-spacing: .08em; }
+.runtime-state i { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 4px rgba(255,113,74,.14); }
+.runtime-live .runtime-state i { background: #55d887; box-shadow: 0 0 0 4px rgba(85,216,135,.14); }
+.runtime-inner code { color: inherit; font-size: 8px; opacity: .78; }
+
 .nav { height: 82px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(16,27,27,.12); }
 .brand { display: flex; gap: 11px; align-items: center; font-size: 19px; font-weight: 720; letter-spacing: -.03em; }
 .brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; background: var(--night); color: var(--green); }
@@ -84,6 +93,7 @@ h1 em, h2 em { color: var(--teal); font-family: Georgia, serif; font-weight: 400
 .console-bar { height: 50px; display: flex; justify-content: space-between; align-items: center; padding-inline: 20px; border-bottom: 1px solid #354b47; color: #9aaba6; font: 10px var(--font-geist-mono); letter-spacing: .08em; }
 .console-bar div { display: flex; align-items: center; gap: 8px; }
 .live-dot { width: 7px; height: 7px; background: #55d887; border-radius: 50%; box-shadow: 0 0 0 4px rgba(85,216,135,.12); }
+.offline-dot { width: 7px; height: 7px; background: var(--orange); border-radius: 50%; box-shadow: 0 0 0 4px rgba(255,113,74,.13); }
 .mode-switch { display: grid; grid-template-columns: 1fr 1fr; padding: 14px; gap: 10px; border-bottom: 1px solid #354b47; }
 .mode-switch button { position: relative; display: grid; grid-template-columns: 32px 1fr; text-align: left; color: #b2c0bc; border: 1px solid #3a514d; border-radius: 9px; background: transparent; padding: 15px 17px; cursor: pointer; font-weight: 650; }
 .mode-switch button > span { grid-row: 1 / 3; color: #6e8580; font: 11px var(--font-geist-mono); }
@@ -262,6 +272,10 @@ h1 em, h2 em { color: var(--teal); font-family: Georgia, serif; font-weight: 400
 .verified .icon { width: 13px; }
 
 footer { padding-block: 45px; color: #d9e1de; background: var(--night); }
+.error-page { width: min(720px, calc(100% - 40px)); min-height: 100vh; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; margin-inline: auto; }
+.error-page h1 { font-size: clamp(42px, 7vw, 76px); }
+.error-page p { max-width: 600px; color: var(--muted); font-size: 17px; line-height: 1.6; }
+.error-page .button { margin-top: 20px; }
 .footer-inner { display: flex; justify-content: space-between; align-items: center; }
 .footer-inner p { margin: 9px 0 0; color: #7f938d; font-size: 11px; }
 .footer-inner .brand-mark { color: var(--night); background: var(--green); }
@@ -269,6 +283,8 @@ footer { padding-block: 45px; color: #d9e1de; background: var(--night); }
 .footer-note small { color: #71857f; }
 
 @media (max-width: 900px) {
+  .runtime-inner { grid-template-columns: 1fr auto; }
+  .runtime-inner > span:nth-child(2) { display: none; }
   .nav nav { display: none; }
   .hero { grid-template-columns: 1fr; padding-top: 60px; }
   .hero-visual { min-height: 450px; }
@@ -285,6 +301,8 @@ footer { padding-block: 45px; color: #d9e1de; background: var(--night); }
 }
 
 @media (max-width: 620px) {
+  .runtime-inner { grid-template-columns: 1fr; padding-block: 9px; }
+  .runtime-inner code { display: none; }
   .shell { width: min(100% - 24px, 1180px); }
   .nav { height: 68px; }
   .nav-cta { display: none; }

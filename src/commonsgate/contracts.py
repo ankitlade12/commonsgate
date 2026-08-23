@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from enum import StrEnum
 from typing import Annotated, Literal, Self
 
@@ -28,7 +28,7 @@ LanguageTag = Annotated[
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class StrictModel(BaseModel):
@@ -80,7 +80,7 @@ class DelegationClaims(StrictModel):
     def timezone_required(cls, value: datetime) -> datetime:
         if value.tzinfo is None:
             raise ValueError("timezone-aware datetime required")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
 
 class DelegationIssueRequest(StrictModel):
@@ -171,7 +171,7 @@ class IntakeSubmission(StrictModel):
     def submitted_at_must_be_aware(cls, value: datetime) -> datetime:
         if value.tzinfo is None:
             raise ValueError("submitted_at must include a timezone")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
     @field_validator("response_language")
     @classmethod
@@ -269,7 +269,7 @@ class RoundCreateRequest(StrictModel):
             return None
         if value.tzinfo is None:
             raise ValueError("round automation times must include a timezone")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
     @model_validator(mode="after")
     def automation_window_is_ordered(self) -> Self:
@@ -308,7 +308,7 @@ class StewardTickRequest(SeedRevealRequest):
     def now_must_be_aware(cls, value: datetime) -> datetime:
         if value.tzinfo is None:
             raise ValueError("now must include a timezone")
-        return value.astimezone(timezone.utc)
+        return value.astimezone(UTC)
 
 
 class StewardTickReport(StrictModel):
@@ -370,9 +370,9 @@ class AppealRecord(StrictModel):
 
 
 class ShadowAuditRequest(StrictModel):
-    population_size: int = Field(default=200, ge=20, le=2_000)
-    capacity: int = Field(default=20, ge=1, le=1_000)
-    seed_runs: int = Field(default=25, ge=5, le=100)
+    population_size: int = Field(default=200, ge=20, le=800)
+    capacity: int = Field(default=20, ge=1, le=400)
+    seed_runs: int = Field(default=25, ge=5, le=40)
     small_cell_threshold: int = Field(default=10, ge=1, le=100)
 
     @field_validator("population_size")

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import threading
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from .allocator import allocate
 from .audit import AuditLog
-from .auth import DelegationTokenService, ReplayProtector
+from .auth import DelegationTokenService
 from .canonical import candidate_manifest_hash, seed_commitment, sha256_hex
 from .contracts import (
     AppealCreateRequest,
@@ -52,17 +52,14 @@ class CommonsGateService:
         repository: Repository,
         normalizer: Normalizer,
         token_service: DelegationTokenService,
-        replay_protector: ReplayProtector,
         audit_log: AuditLog,
         explanation_translator: ExplanationTranslator,
     ) -> None:
         self.repository = repository
         self.normalizer = normalizer
         self.token_service = token_service
-        self.replay_protector = replay_protector
         self.audit_log = audit_log
         self.explanation_translator = explanation_translator
-        self._idempotency: dict[tuple[str, str], tuple[str, RequestReceipt]] = {}
         self._lock = threading.RLock()
 
     def create_round(
@@ -130,20 +127,23 @@ class CommonsGateService:
         payload_hash = sha256_hex(
             submission.model_dump(mode="json", exclude={"submitted_at"})
         )
-        cache_key = (agent_id, idempotency_key)
-        with self._lock:
-            cached = self._idempotency.get(cache_key)
-            if cached:
-                cached_hash, cached_receipt = cached
-                if cached_hash != payload_hash:
-                    raise CommonsGateError(
-                        "IDEMPOTENCY_CONFLICT",
-                        "The idempotency key was already used with different content.",
-                        status_code=409,
-                    )
-                return cached_receipt.model_copy(deep=True)
+        cached = self.repository.get_idempotency(agent_id, idempotency_key)
+        if cached:
+            cached_hash, cached_receipt = cached
+            if cached_hash != payload_hash:
+                raise CommonsGateError(
+                    "IDEMPOTENCY_CONFLICT",
+                    "The idempotency key was already used with different content.",
+                    status_code=409,
+                )
+            return cached_receipt.model_copy(deep=True)
 
-        self.replay_protector.consume(claims.delegation_id, nonce)
+        if not self.repository.consume_nonce(claims.delegation_id, nonce):
+            raise CommonsGateError(
+                "REPLAY_DETECTED",
+                "This request nonce has already been used.",
+                status_code=409,
+            )
         round_record = self.repository.get_round(submission.round_id)
         self._assert_submission_matches_round(submission, round_record)
         if round_record.status != RoundStatus.OPEN:
@@ -174,8 +174,9 @@ class CommonsGateService:
                 actor_id=agent_id,
                 payload_hash=payload_hash,
             )
-            with self._lock:
-                self._idempotency[cache_key] = (payload_hash, receipt)
+            self.repository.save_idempotency(
+                agent_id, idempotency_key, payload_hash, receipt
+            )
             return receipt
 
         request_id = f"req_{uuid.uuid4().hex}"
@@ -215,8 +216,9 @@ class CommonsGateService:
             },
         )
         receipt = self._receipt(stored, next_action=next_action)
-        with self._lock:
-            self._idempotency[cache_key] = (payload_hash, receipt)
+        self.repository.save_idempotency(
+            agent_id, idempotency_key, payload_hash, receipt
+        )
         return receipt
 
     def get_request(
@@ -436,7 +438,7 @@ class CommonsGateService:
                 status_code=409,
             )
         allocated = set(result.allocated_principals)
-        published_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        published_at = (now or datetime.now(UTC)).astimezone(UTC)
         waitlist_positions = {
             principal: index
             for index, principal in enumerate(result.waitlisted_principals, start=1)
@@ -511,6 +513,34 @@ class CommonsGateService:
         workflow timing; deterministic services retain all decision authority.
         """
 
+        lease_owner = f"{actor_id}:{correlation_id}"
+        if not self.repository.acquire_round_lease(
+            round_id, lease_owner, ttl_seconds=90
+        ):
+            raise CommonsGateError(
+                "ROUND_STEWARD_BUSY",
+                "Another steward invocation is already advancing this round.",
+                status_code=409,
+                retryable=True,
+            )
+        try:
+            return self._steward_tick_with_lease(
+                round_id,
+                payload,
+                actor_id=actor_id,
+                correlation_id=correlation_id,
+            )
+        finally:
+            self.repository.release_round_lease(round_id, lease_owner)
+
+    def _steward_tick_with_lease(
+        self,
+        round_id: str,
+        payload: StewardTickRequest,
+        *,
+        actor_id: str,
+        correlation_id: str,
+    ) -> StewardTickReport:
         transitions: list[str] = []
         expired_count = 0
         promoted: tuple[str, ...] = ()
@@ -605,7 +635,7 @@ class CommonsGateService:
                 raise invalid_state("Only an active appointment offer can be decided.")
             if (
                 stored.offer_expires_at is not None
-                and stored.offer_expires_at <= datetime.now(timezone.utc)
+                and stored.offer_expires_at <= datetime.now(UTC)
             ):
                 raise invalid_state(
                     "This offer has expired. Run the round steward to promote the waitlist."
@@ -633,7 +663,7 @@ class CommonsGateService:
             ):
                 self._promote_waitlist(
                     stored.round_id,
-                    now=datetime.now(timezone.utc),
+                    now=datetime.now(UTC),
                     actor_id="round-steward",
                     correlation_id=correlation_id,
                 )
@@ -830,7 +860,7 @@ class CommonsGateService:
                         update={
                             "status": RequestStatus.APPOINTMENT_OFFERED,
                             "reason_code": "APPEAL_REMEDY_OFFERED",
-                            "offer_expires_at": datetime.now(timezone.utc)
+                            "offer_expires_at": datetime.now(UTC)
                             + timedelta(minutes=record.offer_ttl_minutes),
                             "offer_source": "appeal_holdback",
                         }
@@ -844,7 +874,7 @@ class CommonsGateService:
                         if payload.outcome == "GRANTED"
                         else AppealStatus.DENIED
                     ),
-                    "resolved_at": datetime.now(timezone.utc),
+                    "resolved_at": datetime.now(UTC),
                     "remedy": remedy,
                     "reviewer_note_hash": sha256_hex(payload.reviewer_note),
                     "version": appeal.version + 1,
@@ -1009,7 +1039,7 @@ class CommonsGateService:
                 evidence="Language is absent from every allocator input",
             ),
         )
-        generated_at = datetime.now(timezone.utc)
+        generated_at = datetime.now(UTC)
         passed_count = sum(check.passed for check in checks)
         report_hash = sha256_hex(
             {
@@ -1040,7 +1070,7 @@ class CommonsGateService:
             seed="demo-seed-v1",
         )
         return DemoProofBundle(
-            generated_at=datetime.now(timezone.utc),
+            generated_at=datetime.now(UTC),
             population_size=report.population_size,
             capacity=report.capacity,
             total_attempts=len(attempts),

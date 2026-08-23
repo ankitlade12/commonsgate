@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
 
@@ -8,7 +8,6 @@ from commonsgate.api import create_app
 from commonsgate.canonical import seed_commitment
 from commonsgate.normalization import RuleBasedNormalizer
 from commonsgate.settings import Settings
-
 
 ADMIN_KEY = "lifecycle-integration-admin-key"
 SEED = "lifecycle-round-seed-0000001"
@@ -136,7 +135,7 @@ def test_steward_offer_expiry_waitlist_promotion_and_appeal_remedy() -> None:
         assert list(states.values()).count("APPOINTMENT_OFFERED") == 1
         assert list(states.values()).count("WAITLISTED") == 2
 
-        future = datetime.now(timezone.utc) + timedelta(hours=1)
+        future = datetime.now(UTC) + timedelta(hours=1)
         advanced = client.post(
             "/v1/rounds/round-lifecycle/steward/tick",
             headers=admin_headers(),

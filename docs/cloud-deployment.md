@@ -1,7 +1,7 @@
 # Cloud deployment runbook
 
 The deployable architecture uses three independently permissioned Cloud Run
-services:
+services plus one one-shot Cloud Run Job:
 
 1. `commonsgate-api` owns authoritative request and round state in Firestore. It
    calls Gemini for extraction but never gives the model allocation tools.
@@ -12,7 +12,11 @@ services:
    name a winner, or bypass review.
 3. `commonsgate-web` is the public proof dashboard. It calls only the public proof
    and reason-template routes through server-side handlers; provider administration
-   remains outside the public browser bundle.
+    remains outside the public browser bundle.
+4. `commonsgate-scheduler` is a non-public Cloud Run Job invoked by Cloud
+   Scheduler. It calls one bounded steward tick for a configured round. The seed
+   and credential are server-held, and duplicate delivery is guarded by a durable
+   lease plus idempotent transitions.
 
 This separation makes the security boundary visible in IAM and in the demo.
 
@@ -23,7 +27,8 @@ This separation makes the security boundary visible in IAM and in the demo.
 - Cloud Run, Cloud Build, Artifact Registry, Firestore, Secret Manager, Vertex
   AI, Cloud Logging, and Cloud Trace APIs enabled
 - A Firestore database in Native mode
-- Two service accounts: one for the API and one for the agent
+- Separate least-privilege service accounts for the API, agent, scheduler job,
+  and Scheduler invoker
 
 Do not grant the agent service account direct Firestore write access. The agent
 must pass through the API authorization and audit boundary.
@@ -54,6 +59,10 @@ gcloud builds submit \
 gcloud builds submit \
   --config infrastructure/cloudbuild-web.yaml \
   --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT_ID/commonsgate/web:VERSION .
+
+gcloud builds submit \
+  --config infrastructure/cloudbuild-scheduler.yaml \
+  --substitutions _IMAGE=REGION-docker.pkg.dev/PROJECT_ID/commonsgate/scheduler:VERSION .
 ```
 
 ## Deploy the API
@@ -104,6 +113,44 @@ gcloud run deploy commonsgate-agent \
   --no-allow-unauthenticated
 ```
 
+## Deploy autonomous background execution
+
+Create the target round before enabling the schedule. The round seed secret must
+match that round's already-published seed commitment.
+
+```bash
+gcloud run jobs deploy commonsgate-scheduler \
+  --image REGION-docker.pkg.dev/PROJECT_ID/commonsgate/scheduler:VERSION \
+  --region REGION \
+  --service-account commonsgate-scheduler@PROJECT_ID.iam.gserviceaccount.com \
+  --set-env-vars COMMONSGATE_API_URL=https://API_URL,COMMONSGATE_ROUND_ID=ROUND_ID \
+  --update-secrets COMMONSGATE_ADMIN_KEY=commonsgate-admin-key:latest,COMMONSGATE_DEMO_ROUND_SEED=commonsgate-demo-round-seed:latest \
+  --max-retries 3 \
+  --task-timeout 120s
+```
+
+Grant a dedicated invoker permission on only this job, then create the Scheduler
+trigger. Cloud Scheduler may deliver a request more than once; this design treats
+that as expected rather than relying on exactly-once delivery.
+
+```bash
+gcloud run jobs add-iam-policy-binding commonsgate-scheduler \
+  --region REGION \
+  --member serviceAccount:commonsgate-scheduler-invoker@PROJECT_ID.iam.gserviceaccount.com \
+  --role roles/run.invoker
+
+gcloud scheduler jobs create http commonsgate-steward-every-minute \
+  --location REGION \
+  --schedule "* * * * *" \
+  --uri "https://run.googleapis.com/v2/projects/PROJECT_ID/locations/REGION/jobs/commonsgate-scheduler:run" \
+  --http-method POST \
+  --oauth-service-account-email commonsgate-scheduler-invoker@PROJECT_ID.iam.gserviceaccount.com
+```
+
+For the video, show one Scheduler execution, its Cloud Run Job attempt, and the
+matching API correlation ID. Disable or delete the trigger after the synthetic
+demo round is complete to avoid idle invocations.
+
 ## Verification gates
 
 - `/healthz` reports `GeminiNormalizer`, `FirestoreRepository`, and a valid audit
@@ -115,6 +162,8 @@ gcloud run deploy commonsgate-agent \
 - The agent cannot call raw close/allocation endpoints or supply policy, capacity,
   seed, or winner arguments; its steward call pauses while review is pending.
 - Closing and replaying a round returns identical manifest and outcome hashes.
+- A Scheduler-triggered job advances a due round without a human click; concurrent
+  duplicate ticks return a lease conflict or no-op and do not double-publish.
 - `/v1/demo/proof` and the dashboard show the same metrics and commitments.
 - A non-English BCP 47 explanation either returns a Gemini translation or visibly
   reports the approved English fallback; the reason code remains unchanged.

@@ -12,7 +12,7 @@ import hmac
 import json
 import threading
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from .canonical import canonical_json
 from .contracts import DelegationClaims, DelegationIssueRequest
@@ -36,7 +36,7 @@ class DelegationTokenService:
     def issue(
         self, request: DelegationIssueRequest, *, now: datetime | None = None
     ) -> tuple[str, DelegationClaims]:
-        issued_at = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        issued_at = (now or datetime.now(UTC)).astimezone(UTC)
         claims = DelegationClaims(
             delegation_id=f"deleg_{uuid.uuid4().hex}",
             principal_token=request.principal_token,
@@ -81,7 +81,7 @@ class DelegationTokenService:
                 status_code=403,
             ) from exc
 
-        current = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+        current = (now or datetime.now(UTC)).astimezone(UTC)
         mismatches: list[dict[str, str]] = []
         expected_values = {
             "agent_id": (claims.agent_id, agent_id),
