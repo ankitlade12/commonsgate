@@ -158,6 +158,8 @@ h1 em, h2 em { color: var(--teal); font-family: Georgia, serif; font-weight: 400
 .interval-row i { z-index: 1; background: var(--green); }
 .shadow-card > p { margin: 15px 24px 13px; color: var(--muted); font-size: 11px; line-height: 1.55; }
 .shadow-card > code { display: block; margin: 0 24px 23px; color: #60706a; font: 9px var(--font-geist-mono); }
+.certificate-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 24px 24px; padding: 11px 13px; border: 1px solid #c8d3cb; border-radius: 7px; color: var(--green-dark); background: #f4f8f2; font-size: 10px; font-weight: 700; }
+.certificate-link .icon { width: 14px; }
 .threat-list { padding: 8px 24px; }
 .threat-list > div { display: grid; grid-template-columns: 24px minmax(130px, 1fr) minmax(110px, .8fr); align-items: center; gap: 10px; min-height: 55px; border-bottom: 1px solid #e6e9e2; }
 .threat-list > div:last-child { border: 0; }

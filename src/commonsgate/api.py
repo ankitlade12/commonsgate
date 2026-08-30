@@ -14,6 +14,7 @@ from fastapi.responses import JSONResponse
 from .audit import AuditLog, FirestoreAuditLog
 from .auth import DelegationTokenService
 from .contracts import (
+    AgentSwapCertificate,
     AppealCreateRequest,
     AppealRecord,
     AppealResolutionRequest,
@@ -22,6 +23,7 @@ from .contracts import (
     DemoProofBundle,
     ErrorBody,
     ErrorResponse,
+    FairAccessEnvelope,
     IntakeSubmission,
     LocalizedExplanation,
     OfferDecisionRequest,
@@ -186,6 +188,7 @@ def create_app(
             status_code=exc.status_code, content=body.model_dump(mode="json")
         )
 
+    @app.get("/health")
     @app.get("/healthz")
     def health() -> dict[str, object]:
         return {
@@ -202,14 +205,22 @@ def create_app(
     @app.get("/.well-known/agent-card.json")
     def agent_card() -> dict[str, object]:
         return {
-            "name": "CommonsGate Intake Steward",
-            "description": "Normalizes authorized requests for a fair allocation round without assigning appointments itself.",
-            "url": resolved_settings.public_base_url,
+            "name": "CommonsGate Round Steward",
+            "description": "A bounded fair-access steward that normalizes authorized requests and advances a deterministic round without choosing winners.",
+            "supportedInterfaces": [
+                {
+                    "url": resolved_settings.agent_a2a_url,
+                    "protocolBinding": "JSONRPC",
+                    "protocolVersion": "0.3.0",
+                }
+            ],
+            "url": resolved_settings.agent_a2a_url,
             "version": "0.4.0",
-            "protocolVersion": "0.4.0",
-            "capabilities": {"streaming": False, "pushNotifications": False},
-            "defaultInputModes": ["text", "application/json"],
-            "defaultOutputModes": ["application/json"],
+            "protocolVersion": "0.3.0",
+            "preferredTransport": "JSONRPC",
+            "capabilities": {"streaming": True},
+            "defaultInputModes": ["text/plain"],
+            "defaultOutputModes": ["text/plain"],
             "skills": [
                 {
                     "id": "submit_fair_access_request",
@@ -248,8 +259,36 @@ def create_app(
     def get_program(program_id: str) -> dict[str, object]:
         return {
             "program_id": program_id,
-            "provider_id": "provider_legal_aid_demo",
+            "provider_id": "provider-demo",
+            "round_id": "round-demo",
             "service_type": "housing_legal_intake",
+            "required_facts": [
+                {
+                    "field": "service_area_confirmed",
+                    "request": "State whether the synthetic matter is in Cook County or Chicago.",
+                },
+                {
+                    "field": "court_deadline_date",
+                    "request": "State the explicit court or response deadline as an ISO date.",
+                },
+                {
+                    "field": "accommodation_requested",
+                    "request": "State whether an accessibility accommodation is requested.",
+                },
+            ],
+            "optional_facts": [
+                {
+                    "field": "preferred_language",
+                    "request": "Optionally state a preferred communication language.",
+                }
+            ],
+            "not_required": [
+                "name",
+                "contact_information",
+                "income",
+                "agent_vendor",
+                "agent_subscription_tier",
+            ],
             "policy_summary": {
                 "service_area": "Cook County",
                 "priority": "Published deadline tiers",
@@ -263,7 +302,11 @@ def create_app(
 
     @app.get("/v1/programs/{program_id}/fae-schema")
     def get_fae_schema(program_id: str) -> dict[str, object]:
-        schema = IntakeSubmission.model_json_schema()
+        schema = FairAccessEnvelope.model_json_schema()
+        schema["$id"] = (
+            "https://commonsgate.dev/schemas/fair-access-envelope/1.0.0"
+        )
+        schema["title"] = "Fair Access Envelope"
         schema["x-program-id"] = program_id
         return schema
 
@@ -272,6 +315,15 @@ def create_app(
         """Public, deterministic, synthetic evidence for the product claim."""
 
         return service.demo_proof()
+
+    @app.get(
+        "/v1/demo/agent-swap-certificate",
+        response_model=AgentSwapCertificate,
+    )
+    def agent_swap_certificate_endpoint() -> AgentSwapCertificate:
+        """Publish a content-hashed replay of agent-only counterfactuals."""
+
+        return service.agent_swap_certificate()
 
     @app.get("/v1/demo/threats", response_model=ThreatReport)
     def threat_report_endpoint() -> ThreatReport:

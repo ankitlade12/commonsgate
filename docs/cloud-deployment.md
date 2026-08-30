@@ -72,7 +72,7 @@ gcloud run deploy commonsgate-api \
   --image REGION-docker.pkg.dev/PROJECT_ID/commonsgate/api:VERSION \
   --region REGION \
   --service-account commonsgate-api@PROJECT_ID.iam.gserviceaccount.com \
-  --set-env-vars COMMONSGATE_ENV=production,COMMONSGATE_NORMALIZER=gemini,COMMONSGATE_TRANSLATOR=gemini,COMMONSGATE_REPOSITORY=firestore,COMMONSGATE_ENABLE_CLOUD_TRACE=true,COMMONSGATE_GEMINI_MODEL=gemini-3.5-flash,GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=PROJECT_ID,GOOGLE_CLOUD_LOCATION=REGION \
+  --set-env-vars COMMONSGATE_ENV=production,COMMONSGATE_NORMALIZER=gemini,COMMONSGATE_TRANSLATOR=gemini,COMMONSGATE_REPOSITORY=firestore,COMMONSGATE_ENABLE_CLOUD_TRACE=true,COMMONSGATE_GEMINI_MODEL=gemini-3.5-flash,COMMONSGATE_AGENT_A2A_URL=https://AGENT_URL/a2a/commonsgate_agent,GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=PROJECT_ID,GOOGLE_CLOUD_LOCATION=global \
   --update-secrets COMMONSGATE_DELEGATION_SECRET=commonsgate-delegation-secret:latest,COMMONSGATE_ADMIN_KEY=commonsgate-admin-key:latest \
   --allow-unauthenticated
 ```
@@ -108,7 +108,7 @@ gcloud run deploy commonsgate-agent \
   --image REGION-docker.pkg.dev/PROJECT_ID/commonsgate/agent:VERSION \
   --region REGION \
   --service-account commonsgate-agent@PROJECT_ID.iam.gserviceaccount.com \
-  --set-env-vars COMMONSGATE_API_URL=https://API_URL,COMMONSGATE_ADK_MODEL=gemini-3.5-flash,COMMONSGATE_DEMO_AGENT_ID=demo-free-agent,COMMONSGATE_DEMO_PRINCIPAL_TOKEN=synthetic-principal-token-0001,GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=PROJECT_ID,GOOGLE_CLOUD_LOCATION=REGION \
+  --set-env-vars COMMONSGATE_API_URL=https://API_URL,COMMONSGATE_ADK_MODEL=gemini-3.5-flash,COMMONSGATE_DEMO_AGENT_ID=demo-free-agent,COMMONSGATE_DEMO_PRINCIPAL_TOKEN=synthetic-principal-token-0001,GOOGLE_GENAI_USE_VERTEXAI=TRUE,GOOGLE_CLOUD_PROJECT=PROJECT_ID,GOOGLE_CLOUD_LOCATION=global \
   --update-secrets COMMONSGATE_DEMO_DELEGATION_TOKEN=commonsgate-demo-delegation:latest,COMMONSGATE_ADMIN_KEY=commonsgate-admin-key:latest,COMMONSGATE_DEMO_ROUND_SEED=commonsgate-demo-round-seed:latest \
   --no-allow-unauthenticated
 ```
@@ -153,7 +153,7 @@ demo round is complete to avoid idle invocations.
 
 ## Verification gates
 
-- `/healthz` reports `GeminiNormalizer`, `FirestoreRepository`, and a valid audit
+- `/health` reports `GeminiNormalizer`, `FirestoreRepository`, and a valid audit
   chain.
 - The ADK server exposes an A2A agent card and accepts an authenticated run.
 - A synthetic intake request reaches `QUALIFIED_FOR_ROUND` or
@@ -170,11 +170,45 @@ demo round is complete to avoid idle invocations.
 - Cloud Logging contains correlation IDs but no raw intake text or delegation
   tokens.
 
-## Current external blocker
+## Verified deployment — 2026-08-30
 
-An active `gcloud` account is present, but the configured project is
-`caseproof-xprize-ankit-2026`, which does not clearly identify this product, and
-Cloud Resource Manager is not enabled there. Do not mutate or deploy into that
-project until the owner explicitly confirms it as the CommonsGate target or
-provides a different project ID. Actual service names, URLs, trace screenshots,
-and deployed revisions must be recorded only after deployment succeeds.
+- Project: `commonsgate-ankit-2026` (`146601709730`), region `us-central1`
+- Dashboard: <https://commonsgate-web-c32w4tw36q-uc.a.run.app>, revision
+  `commonsgate-web-00003-nxb`
+- API: <https://commonsgate-api-c32w4tw36q-uc.a.run.app>, revision
+  `commonsgate-api-00007-wm2`
+- Private ADK/A2A service: `commonsgate-agent`, revision
+  `commonsgate-agent-00005-fxb`
+- Scheduler job: `commonsgate-scheduler`; recurring trigger
+  `commonsgate-steward-every-minute` is paused after verification
+- Firestore: Native `(default)` database in `nam5`
+- Cost guardrail: project-scoped `$30` monthly budget with 50%, 90%, 100%, and
+  forecasted-100% alerts
+
+Verified evidence:
+
+- `/health` reports Gemini extraction/translation, `FirestoreRepository`,
+  production, Cloud Trace enabled, and a valid audit chain.
+- An authenticated ADK run called `get_intake_program`; the A2A card is available
+  at `/a2a/commonsgate_agent/.well-known/agent-card.json` to authenticated callers.
+- The public API discovery card mirrors the real service's JSON-RPC `0.3.0`
+  metadata through `COMMONSGATE_AGENT_A2A_URL`; it does not advertise the REST API
+  root as an A2A transport.
+- Gemini 3.5 Flash produced a qualified, source-linked intake with application-owned
+  schema/prompt/model metadata and `decision_authority=none`.
+- A separate Gemini 3.5 Flash call delivered a reason-locked `es-MX` translation
+  without changing its reason code.
+- Scheduler logged `paused_for_review=true` with three pending reviews. After
+  versioned corrections, it logged `ROUND_FROZEN` and `ALLOCATION_PUBLISHED`.
+- The public round proof reports 6 candidates, 2 initial allocations, 4 waitlisted,
+  a 1-slot appeal holdback, valid audit chain, and verified replay.
+- The downloadable agent-swap certificate independently replays manual, free,
+  standard, and premium representations. All four produce the same manifest and
+  outcome hashes, with a measured maximum outcome change of `0%` and certificate
+  hash `b1132393852debf1a94f0b39dc3285725872d30e9c2f87a9d19993c2c69650d8`.
+- The public FAE schema exposes only normalized, agent-neutral decision facts and
+  deliberately excludes raw text and submission timestamps.
+- State created before later API deployments remained available after revision
+  `00007`, demonstrating live Firestore persistence across revisions.
+- The final dashboard rendered live API evidence, live shadow and threat reports,
+  and live `hi-Deva-IN` translation with no browser console or page errors.

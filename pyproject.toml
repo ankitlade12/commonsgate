@@ -11,8 +11,11 @@ requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "CommonsGate contributors" }]
 dependencies = [
+    # ADK's A2A extra currently installs the protocol types but not the HTTP/SSE
+    # server transport used by `adk api_server --a2a`.
+    "a2a-sdk[http-server]>=0.3.4,<2.0",
     "fastapi>=0.141,<1.0",
-    "google-adk[gcp]>=2.6.2,<3.0",
+    "google-adk[a2a,gcp]>=2.6.2,<3.0",
     "google-cloud-firestore>=2.21,<3.0",
     "google-genai>=2.9,<3.0",
     "httpx>=0.28,<1.0",
@@ -30,7 +33,7 @@ dev = [
     "httpx2>=2.0,<3.0",
     "pytest>=8.0",
     "pytest-asyncio>=1.0,<2.0",
-    "mypy>=1.18,<2.0",
+    "mypy>=1.18,<3.0",
     "ruff>=0.14,<1.0",
 ]
 

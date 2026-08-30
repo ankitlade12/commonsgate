@@ -36,7 +36,7 @@
         "scopes": {
           "type": "array",
           "uniqueItems": true,
-          "items": { "enum": ["submit", "read_status", "correct", "withdraw", "appeal"] }
+          "items": { "enum": ["submit", "read_status", "correct", "withdraw", "appeal", "manage_offer"] }
         }
       }
     },
@@ -87,9 +87,10 @@
     "provenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "method", "confidence", "human_verified"],
+      "required": ["source", "source_quote", "method", "confidence", "human_verified"],
       "properties": {
         "source": { "type": "string" },
+        "source_quote": { "type": "string", "minLength": 1, "maxLength": 500 },
         "method": { "enum": ["structured_submission", "gemini_extraction", "human_correction", "rule_fallback"] },
         "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
         "human_verified": { "type": "boolean" }

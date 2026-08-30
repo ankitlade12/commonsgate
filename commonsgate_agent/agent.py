@@ -28,9 +28,9 @@ ALLOWED_TOOLS = {
 
 
 def _demo_credentials() -> tuple[str, str, str]:
-    agent_id = os.getenv("COMMONSGATE_DEMO_AGENT_ID", "")
-    principal_token = os.getenv("COMMONSGATE_DEMO_PRINCIPAL_TOKEN", "")
-    delegation_token = os.getenv("COMMONSGATE_DEMO_DELEGATION_TOKEN", "")
+    agent_id = os.getenv("COMMONSGATE_DEMO_AGENT_ID", "").strip()
+    principal_token = os.getenv("COMMONSGATE_DEMO_PRINCIPAL_TOKEN", "").strip()
+    delegation_token = os.getenv("COMMONSGATE_DEMO_DELEGATION_TOKEN", "").strip()
     if not agent_id or not principal_token or not delegation_token:
         raise RuntimeError(
             "Demo delegation is not configured. Set COMMONSGATE_DEMO_AGENT_ID, "
@@ -114,8 +114,8 @@ def advance_demo_round(round_id: str = "round-demo") -> dict[str, Any]:
     Repeated calls are idempotent.
     """
 
-    admin_key = os.getenv("COMMONSGATE_ADMIN_KEY", "")
-    seed = os.getenv("COMMONSGATE_DEMO_ROUND_SEED", "")
+    admin_key = os.getenv("COMMONSGATE_ADMIN_KEY", "").strip()
+    seed = os.getenv("COMMONSGATE_DEMO_ROUND_SEED", "").strip()
     if not admin_key or not seed:
         raise RuntimeError(
             "Round stewardship is not configured. Set COMMONSGATE_ADMIN_KEY and "
@@ -164,8 +164,10 @@ root_agent = Agent(
 
 Your job is to complete a synthetic fair-access workflow with the least necessary
 information and clearly report evidence from every transition. First retrieve the
-public program rules. Ask concise clarifying questions only for facts required by
-those rules. Then call the submission tool once. If the API requests missing
+public program rules. Treat its required_facts and optional_facts as the complete
+intake contract: do not infer or invent additional requirements, and never ask for
+anything listed in not_required. Ask concise clarifying questions only for facts
+explicitly required by that contract. Then call the submission tool once. If the API requests missing
 information, ask only for those fields. If it routes the case to human review,
 explain that review is protective, not a penalty. When the provider asks you to
 advance the round, call the steward tool. If it pauses for review, do not retry in

@@ -1,0 +1,34 @@
+{
+  "name": "CommonsGate Round Steward",
+  "description": "A bounded fair-access steward that explains public intake rules, submits only for a delegated synthetic principal, reports status, and advances a provider-approved deterministic round without choosing winners.",
+  "url": "https://commonsgate-agent-c32w4tw36q-uc.a.run.app/a2a/commonsgate_agent",
+  "version": "0.4.0",
+  "protocolVersion": "0.3.0",
+  "capabilities": {
+    "streaming": true
+  },
+  "defaultInputModes": [
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "text/plain"
+  ],
+  "skills": [
+    {
+      "id": "commonsgate-fair-access-steward",
+      "name": "Fair-access round stewardship",
+      "description": "Explain the program, submit an authorized synthetic intake request, report its status, or invoke one idempotent round-steward tick. The agent cannot change policy, capacity, seed, priority, or winners.",
+      "tags": [
+        "fair-access",
+        "delegation",
+        "deterministic-allocation",
+        "public-interest"
+      ],
+      "examples": [
+        "Explain what facts the program needs before collecting my synthetic request.",
+        "Submit this authorized synthetic request and show the receipt.",
+        "Advance the demo round through its next safe lifecycle transition."
+      ]
+    }
+  ]
+}

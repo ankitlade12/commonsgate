@@ -14,6 +14,7 @@ SETTINGS = Settings(
     admin_key=ADMIN_KEY,
     normalizer_mode="rule",
     public_base_url="https://commonsgate.example",
+    agent_a2a_url="https://agent.commonsgate.example/a2a/commonsgate_agent",
 )
 VALID_TEXT = (
     "I live in Cook County. Court deadline: 2026-08-25. "
@@ -292,6 +293,64 @@ def test_public_demo_proof_quantifies_the_product_claim() -> None:
         "seed_commitment",
         "outcome_hash",
     }
+
+
+def test_public_agent_card_points_to_the_real_a2a_transport() -> None:
+    with TestClient(
+        create_app(settings=SETTINGS, normalizer=RuleBasedNormalizer())
+    ) as client:
+        response = client.get("/.well-known/agent-card.json")
+
+    assert response.status_code == 200
+    card = response.json()
+    assert card["protocolVersion"] == "0.3.0"
+    assert card["preferredTransport"] == "JSONRPC"
+    assert card["url"] == "https://agent.commonsgate.example/a2a/commonsgate_agent"
+    assert card["supportedInterfaces"] == [
+        {
+            "url": "https://agent.commonsgate.example/a2a/commonsgate_agent",
+            "protocolBinding": "JSONRPC",
+            "protocolVersion": "0.3.0",
+        }
+    ]
+
+
+def test_fae_schema_publishes_agent_neutral_envelope_not_raw_intake() -> None:
+    with TestClient(
+        create_app(settings=SETTINGS, normalizer=RuleBasedNormalizer())
+    ) as client:
+        response = client.get("/v1/programs/program-demo/fae-schema")
+
+    assert response.status_code == 200
+    schema = response.json()
+    assert schema["title"] == "Fair Access Envelope"
+    assert schema["x-program-id"] == "program-demo"
+    assert "policy_facts" in schema["properties"]
+    assert "delegate" in schema["properties"]
+    assert "raw_text" not in schema["properties"]
+    assert "submitted_at" not in schema["properties"]
+
+
+def test_agent_swap_certificate_proves_representation_invariance() -> None:
+    with TestClient(
+        create_app(settings=SETTINGS, normalizer=RuleBasedNormalizer())
+    ) as client:
+        response = client.get("/v1/demo/agent-swap-certificate")
+
+    assert response.status_code == 200
+    certificate = response.json()
+    assert certificate["representations"] == [
+        "manual",
+        "free",
+        "standard",
+        "premium",
+    ]
+    assert len(set(certificate["representation_manifest_hashes"].values())) == 1
+    assert len(set(certificate["representation_outcome_hashes"].values())) == 1
+    assert certificate["all_manifests_identical"] is True
+    assert certificate["all_outcomes_identical"] is True
+    assert certificate["maximum_outcome_change_rate"] == 0.0
+    assert len(certificate["certificate_hash"]) == 64
 
 
 def test_public_explanation_preview_contains_no_case_data_or_decision_authority() -> None:

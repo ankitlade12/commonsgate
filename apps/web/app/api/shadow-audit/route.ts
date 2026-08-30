@@ -17,7 +17,7 @@ export async function POST() {
         seed_runs: 10,
         small_cell_threshold: 10,
       }),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(30_000),
     });
     if (!response.ok) throw new Error(`Shadow audit API returned ${response.status}`);
     const payload = await response.json();

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import random
 from dataclasses import dataclass
+from typing import Literal
 
 from .allocator import allocate
 from .metrics import agent_advantage_index, allocation_rates, outcome_change_rate
 from .models import AgentTier, AllocationResult, Charter, Request
 
-DEMO_TIERS: tuple[AgentTier, ...] = ("manual", "free", "standard", "premium")
+DemoTier = Literal["manual", "free", "standard", "premium"]
+DEMO_TIERS: tuple[DemoTier, ...] = ("manual", "free", "standard", "premium")
 BASE_LATENCY_MS: dict[str, int] = {
     "manual": 45_000,
     "free": 18_000,
@@ -68,6 +70,17 @@ class ShadowAuditData:
     commonsgate_aai_values: tuple[float, ...]
     commonsgate_rate_values: dict[str, tuple[float, ...]]
     exact_counterfactual_change_rate: float
+
+
+@dataclass(frozen=True, slots=True)
+class AgentSwapStudy:
+    population_size: int
+    capacity: int
+    representations: tuple[DemoTier, ...]
+    manifest_hashes: dict[DemoTier, str]
+    outcome_hashes: dict[DemoTier, str]
+    seed_commitment: str
+    maximum_outcome_change_rate: float
 
 
 def generate_requests(
@@ -291,4 +304,42 @@ def run_shadow_audit(
             tier: tuple(values) for tier, values in rate_values.items()
         },
         exact_counterfactual_change_rate=max(counterfactual_changes, default=0.0),
+    )
+
+
+def run_agent_swap_study(
+    *, population_size: int = 200, capacity: int = 20, seed: str = "demo-seed-v1"
+) -> AgentSwapStudy:
+    """Re-represent identical people and facts through every demo agent tier."""
+
+    requests = generate_requests(population_size=population_size)
+    charter = Charter(
+        charter_id="housing-legal-intake",
+        version="1.0.0",
+        capacity=capacity,
+        reserved_accommodation_capacity=min(4, capacity),
+    )
+    results = {
+        tier: allocate(_retier_requests(requests, tier), charter, seed=seed)
+        for tier in DEMO_TIERS
+    }
+    reference = results["manual"].allocated_principals
+    changes = (
+        outcome_change_rate(
+            reference,
+            results[tier].allocated_principals,
+            population_size,
+        )
+        for tier in DEMO_TIERS
+    )
+    return AgentSwapStudy(
+        population_size=population_size,
+        capacity=capacity,
+        representations=DEMO_TIERS,
+        manifest_hashes={
+            tier: results[tier].manifest_hash for tier in DEMO_TIERS
+        },
+        outcome_hashes={tier: results[tier].outcome_hash for tier in DEMO_TIERS},
+        seed_commitment=results["manual"].seed_commitment,
+        maximum_outcome_change_rate=max(changes, default=0.0),
     )

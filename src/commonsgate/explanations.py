@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Any, Protocol, cast
+from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -170,28 +170,24 @@ class GeminiExplanationTranslator:
             f"Next action: {template.next_action}\n"
         )
         try:
-            interaction = cast(
-                Any,
-                await asyncio.to_thread(
-                    lambda: self._client.interactions.create(
-                        model=self.model,
-                        input=prompt,
-                        system_instruction=(
+            response = await asyncio.to_thread(
+                lambda: self._client.models.generate_content(
+                    model=self.model,
+                    contents=prompt,
+                    config={
+                        "system_instruction": (
                             "Translate the three approved resident-facing fields faithfully into the target language. "
                             "Do not add, remove, soften, or reinterpret policy. Preserve dates, names, and negation. "
                             "Return only the requested JSON structure. You have no decision authority."
                         ),
-                        response_format={
-                            "type": "text",
-                            "mime_type": "application/json",
-                            "schema": _TranslatedFields.model_json_schema(),
-                        },
-                    )
-                ),
+                        "response_mime_type": "application/json",
+                        "response_json_schema": _TranslatedFields.model_json_schema(),
+                    },
+                )
             )
-            output_text = getattr(interaction, "output_text", None)
+            output_text = getattr(response, "text", None)
             if not isinstance(output_text, str):
-                raise TypeError("Gemini interaction did not contain output_text")
+                raise TypeError("Gemini response did not contain text")
             translated = _TranslatedFields.model_validate_json(output_text)
         except Exception:  # noqa: BLE001 - model failure must use safe approved copy
             # Translation failure must never hide the authoritative reason or status.

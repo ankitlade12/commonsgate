@@ -50,6 +50,7 @@ The dashboard includes:
 
 - FIFO versus CommonsGate visual comparison
 - Multi-seed shadow audit with P10/P90 sampling range
+- Downloadable agent-swap certificate with four independently replayed outcome hashes
 - Six executable adversarial checks
 - Human-review pause and immutable correction trace
 - Any-language BCP 47 explanation preview with explicit English fallback
@@ -79,6 +80,9 @@ storage, recovery procedures and jurisdiction-specific legal review.
 
 ## Setup and evidence
 
+- Hosted dashboard: <https://commonsgate-web-c32w4tw36q-uc.a.run.app>
+- Public live-round proof: <https://commonsgate-api-c32w4tw36q-uc.a.run.app/v1/rounds/round-demo/proof>
+- Downloadable agent-swap certificate: <https://commonsgate-web-c32w4tw36q-uc.a.run.app/api/agent-swap-certificate>
 - Reproducible setup: repository `README.md`
 - Architecture and boundaries: `docs/architecture.md`
 - Standalone architecture upload: `docs/architecture-upload.png`
@@ -89,8 +93,8 @@ storage, recovery procedures and jurisdiction-specific legal review.
 
 ## Required owner-supplied submission fields
 
-- **Hosted URL:** add only after the live runtime banner reports the deployed
-  backend revision and `evidence_source=live`.
+- **Hosted URL:** `https://commonsgate-web-c32w4tw36q-uc.a.run.app` (verified with
+  live API evidence and backend revision `commonsgate-api-00007-wm2`).
 - **Public repository:** verify anonymous access, or invite both hackathon testing
   accounts named in the Devpost rules before submission.
 - **Video:** public YouTube or Vimeo URL, at most four minutes, with English audio
@@ -100,6 +104,7 @@ storage, recovery procedures and jurisdiction-specific legal review.
 - **Bring-your-own-friction story:** add the founder's authentic first-person
   reason for caring about agent-mediated access. Do not replace this with invented
   user research or endorsements.
-- **Google Cloud evidence:** record real service revisions, Scheduler execution,
-  Vertex model call, Firestore document, and correlation trace only after the
-  selected project is confirmed and deployment succeeds.
+- **Google Cloud evidence:** deployment is verified in project
+  `commonsgate-ankit-2026`; capture the real service revisions, Scheduler
+  execution, Vertex model call, Firestore document, and redacted correlation trace
+  in the video.

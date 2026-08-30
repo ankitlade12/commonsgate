@@ -151,6 +151,60 @@ class NormalizationResult(StrictModel):
     decision_authority: Literal["none"] = "none"
 
 
+class EnvelopeDelegate(StrictModel):
+    agent_id: Identifier
+    delegation_id: Identifier
+    scopes: frozenset[
+        Literal[
+            "submit",
+            "read_status",
+            "correct",
+            "withdraw",
+            "appeal",
+            "manage_offer",
+        ]
+    ]
+
+
+class EnvelopePolicyFacts(StrictModel):
+    """The complete fact allowlist visible to the allocation boundary."""
+
+    service_area_confirmed: bool
+    priority_tier: int = Field(ge=1)
+    accommodation_requested: bool
+
+
+class EnvelopeCommunicationPreferences(StrictModel):
+    response_language: LanguageTag = "en"
+
+
+class EnvelopeEvidence(StrictModel):
+    evidence_id: Identifier
+    type: Identifier
+    content_hash: Annotated[
+        str, StringConstraints(pattern=r"^sha256:[a-f0-9]{64}$")
+    ]
+    storage_reference: str | None = Field(default=None, max_length=500)
+
+
+class FairAccessEnvelope(StrictModel):
+    """Portable, agent-neutral representation produced after validation/review."""
+
+    schema_version: Literal["1.0.0"] = "1.0.0"
+    envelope_id: Identifier
+    provider_id: Identifier
+    program_id: Identifier
+    round_id: Identifier
+    principal_token: PrincipalToken
+    delegate: EnvelopeDelegate
+    policy_facts: EnvelopePolicyFacts
+    field_provenance: dict[str, FieldProvenance]
+    communication_preferences: EnvelopeCommunicationPreferences = Field(
+        default_factory=EnvelopeCommunicationPreferences
+    )
+    evidence: tuple[EnvelopeEvidence, ...] = ()
+
+
 class IntakeSubmission(StrictModel):
     provider_id: Identifier
     program_id: Identifier
@@ -469,6 +523,32 @@ class DemoProofBundle(StrictModel):
     counterfactual_outcome_change_rate: dict[str, float]
     invariants: dict[str, bool]
     cryptographic_proof: dict[str, str]
+
+
+class AgentSwapCertificate(StrictModel):
+    certificate_version: Literal["commonsgate-agent-swap-v1"] = (
+        "commonsgate-agent-swap-v1"
+    )
+    scenario_id: Literal["agent-access-200x20-v1"] = "agent-access-200x20-v1"
+    generated_at: datetime
+    synthetic_demo: Literal[True] = True
+    population_size: int = Field(ge=1)
+    capacity: int = Field(ge=0)
+    representations: tuple[Literal["manual", "free", "standard", "premium"], ...]
+    representation_manifest_hashes: dict[
+        Literal["manual", "free", "standard", "premium"],
+        Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")],
+    ]
+    representation_outcome_hashes: dict[
+        Literal["manual", "free", "standard", "premium"],
+        Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")],
+    ]
+    seed_commitment: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
+    all_manifests_identical: bool
+    all_outcomes_identical: bool
+    maximum_outcome_change_rate: float = Field(ge=0.0, le=1.0)
+    certificate_hash: Annotated[str, StringConstraints(pattern=r"^[a-f0-9]{64}$")]
+    methodology: str = Field(min_length=1, max_length=1_000)
 
 
 class RoundPublicProof(StrictModel):

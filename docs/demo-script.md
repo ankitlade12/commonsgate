@@ -11,7 +11,9 @@ Show the dashboard hero and FIFO mode.
 > A premium agent can monitor continuously and retry eight times. In a normal
 > first-come queue, the agent—not the person—determines access.
 
-Point to FIFO AAI `0.40` and the premium cohort result.
+Point to the overall FIFO agent-tier spread of `0.40` and the premium cohort
+result. Do not present this small-sample descriptive metric as a causal fairness
+proof.
 
 ## 0:25–0:55 — the invariant
 
@@ -23,27 +25,32 @@ Switch to CommonsGate and rerun the deterministic proof.
 
 Show 650 attempts → 450 neutralized retries → 200 people → 20 offers.
 
-## 0:55–2:10 — unedited autonomous proof of action
+## 0:55–1:45 — unedited autonomous happy path
 
 Show the Cloud Scheduler execution, Cloud Run Job attempt, ADK session and API
 logs together. Start with an already-due synthetic round; do not click a manual
 "advance" control.
 
-1. Show a delegated synthetic non-English request already submitted with a
-   prompt-injection phrase and source-linked Gemini extraction.
-2. Let Scheduler invoke the job. Show `paused_for_review=true`; the round remains
-   open without a human advancing it.
-3. In the reviewer surface/API, save the versioned factual correction—the one
-   intentional human safety gate.
-4. Let the next scheduled job resume. Show `ROUND_FROZEN` and
-   `ALLOCATION_PUBLISHED`, then connect its correlation ID across job and API logs.
+1. Show a clean delegated synthetic non-English request with source-linked Gemini
+   extraction in an already-due round.
+2. Let Scheduler invoke the job without clicking an advance control.
+3. Show `ROUND_FROZEN` and `ALLOCATION_PUBLISHED`, then connect its correlation ID
+   across the Cloud Run Job, API logs, and Firestore round.
 
 Say:
 
 > Gemini transforms messy language into quoted, typed facts. It has no decision
-> authority. The steward controls workflow, but deterministic tools control every
-> consequential transition. Scheduler retries safely, and uncertainty pauses
-> instead of becoming denial.
+> authority. The steward completes the background workflow, while deterministic
+> tools control every consequential transition.
+
+## 1:45–2:10 — the safety exception
+
+Show a separate synthetic prompt-injection request. Run its steward tick and show
+`paused_for_review=true`; do not resolve it during this segment.
+
+> Autonomy is the normal path, not permission to guess. A flagged request pauses
+> with a reason code and versioned review task instead of becoming a silent denial
+> or an unsafe allocation.
 
 ## 2:10–2:45 — completion, not just selection
 
@@ -59,7 +66,7 @@ by `WAITLIST_PROMOTED`. File and resolve one synthetic appeal using the holdback
 Run Shadow Audit and Run 6 Attacks.
 
 > A provider can begin in shadow mode without replacing its scheduler. Across ten
-> seeds, we show sampling variance honestly; the exact agent-switch change remains
+> seeds, we report small-sample variation honestly; the exact agent-switch change remains
 > zero. Retry floods, agent switching, capacity overruns, seed substitution,
 > outcome tampering and language leakage are executable checks, not slide claims.
 

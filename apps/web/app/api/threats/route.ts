@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const response = await fetch(`${baseUrl}/v1/demo/threats`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Threat API returned ${response.status}`);
     return NextResponse.json({ ...(await response.json()), evidence_source: "live" });

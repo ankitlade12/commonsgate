@@ -1,17 +1,20 @@
 FROM python:3.13-slim AS runtime
 
+COPY --from=ghcr.io/astral-sh/uv:0.9.5 /uv /uvx /bin/
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=8080 \
     ADK_DISABLE_LOCAL_STORAGE=1
 
 WORKDIR /app
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml uv.lock README.md LICENSE ./
 COPY src ./src
 COPY commonsgate_agent ./commonsgate_agent
-RUN pip install --no-cache-dir .
+RUN uv sync --locked --no-dev --no-editable
+
+ENV PATH="/app/.venv/bin:${PATH}"
 
 USER 65532:65532
 EXPOSE 8080
 CMD ["sh", "-c", "exec adk api_server --host 0.0.0.0 --port ${PORT} --no-reload --a2a --session_service_uri=memory:// --artifact_service_uri=memory:// commonsgate_agent"]
-

@@ -11,6 +11,7 @@ from .audit import AuditLog
 from .auth import DelegationTokenService
 from .canonical import candidate_manifest_hash, seed_commitment, sha256_hex
 from .contracts import (
+    AgentSwapCertificate,
     AppealCreateRequest,
     AppealRecord,
     AppealResolutionRequest,
@@ -42,7 +43,12 @@ from .explanations import ExplanationTranslator
 from .models import Charter, Request
 from .normalization import Normalizer, validate_normalization
 from .repository import Repository
-from .simulator import generate_requests, run_demo, run_shadow_audit
+from .simulator import (
+    generate_requests,
+    run_agent_swap_study,
+    run_demo,
+    run_shadow_audit,
+)
 
 
 class CommonsGateService:
@@ -1114,6 +1120,45 @@ class CommonsGateService:
                 "seed_commitment": result.seed_commitment,
                 "outcome_hash": result.outcome_hash,
             },
+        )
+
+    def agent_swap_certificate(self) -> AgentSwapCertificate:
+        """Issue a replayable certificate for the product's core invariance claim."""
+
+        study = run_agent_swap_study()
+        manifests_identical = len(set(study.manifest_hashes.values())) == 1
+        outcomes_identical = len(set(study.outcome_hashes.values())) == 1
+        certificate_payload = {
+            "domain": "commonsgate.agent-swap-certificate.v1",
+            "scenario_id": "agent-access-200x20-v1",
+            "population_size": study.population_size,
+            "capacity": study.capacity,
+            "representations": study.representations,
+            "representation_manifest_hashes": study.manifest_hashes,
+            "representation_outcome_hashes": study.outcome_hashes,
+            "seed_commitment": study.seed_commitment,
+            "all_manifests_identical": manifests_identical,
+            "all_outcomes_identical": outcomes_identical,
+            "maximum_outcome_change_rate": study.maximum_outcome_change_rate,
+        }
+        return AgentSwapCertificate(
+            generated_at=datetime.now(UTC),
+            population_size=study.population_size,
+            capacity=study.capacity,
+            representations=study.representations,
+            representation_manifest_hashes=study.manifest_hashes,
+            representation_outcome_hashes=study.outcome_hashes,
+            seed_commitment=study.seed_commitment,
+            all_manifests_identical=manifests_identical,
+            all_outcomes_identical=outcomes_identical,
+            maximum_outcome_change_rate=study.maximum_outcome_change_rate,
+            certificate_hash=sha256_hex(certificate_payload),
+            methodology=(
+                "The same synthetic principals and policy facts are re-represented "
+                "as manual, free, standard, and premium agents. Only agent identity, "
+                "latency, and retry behavior change; each allocation is replayed with "
+                "the same charter and committed seed."
+            ),
         )
 
     def public_round_proof(self, round_id: str) -> RoundPublicProof:

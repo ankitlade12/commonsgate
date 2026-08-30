@@ -229,7 +229,7 @@ export function DemoClient({
                 {tiers.map((tier) => <TierGrid key={tier.key} tier={tier.key} selected={Math.round(rates[tier.key] * 50)} />)}
               </div>
               <aside className={`score-panel ${mode === "fifo" ? "score-danger" : ""}`}>
-                <small>AGENT ADVANTAGE INDEX</small><strong>{aai.toFixed(2)}</strong><div className="score-track"><span style={{ width: `${Math.max(aai * 200, 2)}%` }} /></div><p>{mode === "fifo" ? "Premium agents capture 100% of appointments. Representation changes outcomes." : "Near-zero group spread; switching one person from manual to premium changes 0 outcomes."}</p>
+                <small>OVERALL AGENT-TIER SPREAD</small><strong>{aai.toFixed(2)}</strong><div className="score-track"><span style={{ width: `${Math.max(aai * 200, 2)}%` }} /></div><p>{mode === "fifo" ? "Premium agents capture 100% of appointments. Representation changes outcomes." : "Small-sample group spread is reported separately; switching one person from manual to premium changes 0 outcomes."}</p>
                 <div className="sensitivity"><span>Manual → premium<br />outcome sensitivity</span><b>{Math.round(proof.individual_manual_to_premium_sensitivity[mode] * 100)}%</b></div>
               </aside>
             </div>
@@ -243,18 +243,21 @@ export function DemoClient({
       </section>
 
       <section className="evidence shell" id="evidence">
-        <div className="section-heading compact"><div><Mark>Provider proof lab</Mark><h2>Measure the risk before changing the queue.</h2></div><p>Shadow mode compares the current speed-sensitive process with an agent-neutral charter. The threat lab then executes the controls judges and providers should challenge.</p></div>
+        <div className="section-heading compact"><div><Mark>Agent-swap certificate lab</Mark><h2>Measure the risk before changing the queue.</h2></div><p>Shadow mode compares the current speed-sensitive process with an agent-neutral charter. The threat lab then executes the controls judges and providers should challenge.</p></div>
         <div className="evidence-grid">
           <article className="lab-card shadow-card">
             <div className="lab-head"><div><small>SHADOW MODE · SYNTHETIC</small><h3>Existing queue comparison</h3></div><button type="button" onClick={runShadowAudit} disabled={isAuditing}>{isAuditing ? "Running 10 seeds…" : "Run shadow audit"}</button></div>
             <div className="lab-metrics">
-              <div><span>FIFO agent advantage</span><strong>{(shadow?.baseline_agent_advantage_index ?? proof.baseline_agent_advantage_index).toFixed(2)}</strong></div>
-              <div><span>CommonsGate mean</span><strong>{(shadow?.commonsgate_agent_advantage_index.mean ?? proof.commonsgate_agent_advantage_index).toFixed(2)}</strong></div>
+              <div><span>FIFO overall spread</span><strong>{(shadow?.baseline_agent_advantage_index ?? proof.baseline_agent_advantage_index).toFixed(2)}</strong></div>
+              <div><span>CommonsGate seed mean</span><strong>{(shadow?.commonsgate_agent_advantage_index.mean ?? proof.commonsgate_agent_advantage_index).toFixed(2)}</strong></div>
               <div><span>Agent-switch change</span><strong>{((shadow?.exact_agent_counterfactual_change_rate ?? 0) * 100).toFixed(0)}%</strong></div>
             </div>
             <div className="interval-row"><span>Across {shadow?.seed_runs ?? 10} committed seed variants</span><div><i style={{ width: `${Math.max((shadow?.commonsgate_agent_advantage_index.p10 ?? 0.04) * 500, 4)}%` }} /><b style={{ width: `${Math.max((shadow?.commonsgate_agent_advantage_index.p90 ?? 0.1) * 500, 8)}%` }} /></div><span>P10 {(shadow?.commonsgate_agent_advantage_index.p10 ?? 0.04).toFixed(2)} · P90 {(shadow?.commonsgate_agent_advantage_index.p90 ?? 0.1).toFixed(2)}</span></div>
             <p>{shadow?.retry_attempts_neutralized ?? proof.retry_attempts_neutralized} retry attempts collapse into one opportunity per person. Small cohorts are suppressed before export.</p>
             <code>{shadow?.report_hash ? `${shadow.evidence_source === "live" ? "LIVE" : "OFFLINE"} · ${shadow.report_hash.slice(0, 20)}…` : "Run to generate a source-labelled report hash"}</code>
+            <a className="certificate-link" href="/api/agent-swap-certificate" download>
+              Download the live agent-swap certificate <Icon name="arrow" />
+            </a>
           </article>
 
           <article className="lab-card threat-card">

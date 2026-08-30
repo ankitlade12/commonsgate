@@ -45,7 +45,7 @@ export async function getProof(): Promise<ProofBundle> {
   try {
     const response = await fetch(`${baseUrl}/v1/demo/proof`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(1200),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Proof API returned ${response.status}`);
     return { ...((await response.json()) as ProofBundle), evidence_source: "live" };

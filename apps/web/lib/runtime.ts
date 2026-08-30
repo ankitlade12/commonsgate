@@ -9,9 +9,9 @@ export function offlineEvidenceAllowed(): boolean {
 export async function getRuntimeEvidence(): Promise<RuntimeEvidence> {
   const baseUrl = process.env.COMMONSGATE_API_URL ?? "http://127.0.0.1:8080";
   try {
-    const response = await fetch(`${baseUrl}/healthz`, {
+    const response = await fetch(`${baseUrl}/health`, {
       cache: "no-store",
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Health API returned ${response.status}`);
     const payload = (await response.json()) as Omit<RuntimeEvidence, "status" | "evidence_source" | "correlation_id">;

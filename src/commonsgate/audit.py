@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+from copy import deepcopy
 from datetime import UTC, datetime
 from typing import Any, ClassVar
 
@@ -43,6 +44,32 @@ class AuditLog:
         self._events: list[AuditEvent] = []
         self._lock = threading.RLock()
 
+    @classmethod
+    def _safe_payload(cls, payload: dict[str, Any] | None) -> dict[str, Any]:
+        """Snapshot a payload and reject sensitive keys at any nesting depth."""
+
+        safe_payload = deepcopy(payload or {})
+        prohibited_paths: list[str] = []
+
+        def inspect(value: Any, path: str = "payload") -> None:
+            if isinstance(value, dict):
+                for key, child in value.items():
+                    key_text = str(key)
+                    child_path = f"{path}.{key_text}"
+                    if key_text.lower() in cls.PROHIBITED_KEYS:
+                        prohibited_paths.append(child_path)
+                    inspect(child, child_path)
+            elif isinstance(value, (list, tuple)):
+                for index, child in enumerate(value):
+                    inspect(child, f"{path}[{index}]")
+
+        inspect(safe_payload)
+        if prohibited_paths:
+            raise ValueError(
+                f"prohibited audit payload keys: {sorted(prohibited_paths)}"
+            )
+        return safe_payload
+
     def append(
         self,
         *,
@@ -53,10 +80,7 @@ class AuditLog:
         object_id: str,
         payload: dict[str, Any] | None = None,
     ) -> AuditEvent:
-        safe_payload = payload or {}
-        prohibited = self.PROHIBITED_KEYS.intersection(safe_payload)
-        if prohibited:
-            raise ValueError(f"prohibited audit payload keys: {sorted(prohibited)}")
+        safe_payload = self._safe_payload(payload)
         with self._lock:
             prior_hash = self._events[-1].event_hash if self._events else "GENESIS"
             timestamp = datetime.now(UTC)
@@ -145,10 +169,7 @@ class FirestoreAuditLog(AuditLog):
         object_id: str,
         payload: dict[str, Any] | None = None,
     ) -> AuditEvent:
-        safe_payload = payload or {}
-        prohibited = self.PROHIBITED_KEYS.intersection(safe_payload)
-        if prohibited:
-            raise ValueError(f"prohibited audit payload keys: {sorted(prohibited)}")
+        safe_payload = self._safe_payload(payload)
         transaction = self._client.transaction()
 
         @self._firestore.transactional

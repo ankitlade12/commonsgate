@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   try {
     const response = await fetch(
       `${baseUrl}/v1/explanations/INCLUDED_IN_ROUND?language=${encodeURIComponent(language)}`,
-      { cache: "no-store", signal: AbortSignal.timeout(2500) },
+      { cache: "no-store", signal: AbortSignal.timeout(30_000) },
     );
     if (!response.ok) throw new Error(`Explanation API returned ${response.status}`);
     return NextResponse.json({ ...(await response.json()), evidence_source: "live" });
