@@ -1,13 +1,21 @@
 # Devpost submission draft
 
-## CommonsGate — same person, same chance, regardless of agent
+## Project overview fields
 
-**Category:** Taskmaster
+- **Project name:** `CommonsGate`
+- **Elevator pitch:** `Verified, agent-neutral access infrastructure: use any AI delegate without speed, retries, language, or agent price changing who gets served.`
+- **Thumbnail:** `docs/devpost-thumbnail.png` (`1536 × 1024`, 3:2 PNG)
 
-CommonsGate is an agent-neutral access gateway for scarce community-service
-appointments. It lets providers accept legitimate AI delegates without allowing
+## CommonsGate — same person, same chance, any agent
+
+**Category:** The Taskmaster
+
+CommonsGate is agent-neutral access infrastructure for scarce community-service
+capacity. It lets providers accept legitimate AI delegates without allowing
 faster models, paid agents, repeated submissions, persuasive wording or language
-to become priority.
+to become priority. Providers gain an autonomous intake-to-allocation workflow;
+residents and reviewers gain replayable proof that software privilege did not
+become access privilege.
 
 ## The friction
 
