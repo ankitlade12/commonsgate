@@ -564,8 +564,6 @@ The next differentiated layer is an **Agent Access Neutrality Observatory**: pro
 - **Hosted project:** <https://commonsgate-web-c32w4tw36q-uc.a.run.app>
 - **Repository:** <https://github.com/ankitlade12/commonsgate>
 - **Architecture upload:** [`docs/architecture-upload.png`](docs/architecture-upload.png)
-- **Submission draft:** [`docs/submission.md`](docs/submission.md)
-- **Four-minute demo plan:** [`docs/demo-script.md`](docs/demo-script.md)
 - **Cloud evidence:** [`docs/cloud-deployment.md`](docs/cloud-deployment.md)
 - **License:** Apache 2.0
 
